@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funky Panda · Sótano Bajo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --stone:#3A3630; --stone-2:#4A4438; --stone-3:#2C2823; --stone-4:#242019;
+    --gold:#C9A227; --rust:#B5651D; --moss:#5A8577; --plum:#8A5A74;
+    --parchment:#EDE0C0; --parchment-dim:#B9AC88;
+    --danger:#C0472C; --radius:10px;
+    --font-hand:'Kalam', cursive; --font-mono:'Space Mono','Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--stone-4);color:var(--parchment);font-family:var(--font-mono);}
+  body{position:relative;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(201,162,39,.08), transparent 45%),
+      radial-gradient(ellipse at 90% 100%, rgba(90,133,119,.10), transparent 50%),
+      linear-gradient(180deg, var(--stone-4), var(--stone-3));
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.12;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  svg.defs{position:absolute;width:0;height:0;overflow:hidden;}
+
+  #lock{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;position:relative;z-index:1;}
+  .card{position:relative;background:var(--stone);border:1.5px solid rgba(201,162,39,.55);border-radius:14px;padding:34px;max-width:380px;width:100%;
+    box-shadow:0 10px 28px rgba(0,0,0,.5);}
+  .card h1{font-family:var(--font-hand);font-weight:700;font-size:32px;margin:0 0 4px;color:var(--gold);}
+  .card p{color:var(--parchment-dim);font-size:13px;margin:0 0 20px;}
+  input[type=password]{width:100%;padding:12px 14px;border-radius:4px;border:1px solid var(--stone-2);background:var(--stone-4);color:var(--parchment);font-size:16px;margin-bottom:12px;font-family:var(--font-mono);}
+  input[type=password]:focus{outline:none;border-color:var(--gold);}
+  button{cursor:pointer;border:none;border-radius:4px;padding:12px 16px;font-size:14px;font-weight:700;width:100%;background:var(--gold);color:#2C2306;text-transform:uppercase;letter-spacing:.04em;font-family:var(--font-mono);}
+  button:hover{filter:brightness(1.08);}
+  #err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:8px;}
+
+  #app{display:none;max-width:1200px;margin:0 auto;padding:24px 16px 60px;position:relative;z-index:1;}
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:22px;
+    border-bottom:3px double var(--gold);padding-bottom:14px;}
+  .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:16px;letter-spacing:.02em;}
+  header.top h1{font-family:var(--font-hand);font-weight:700;font-size:32px;margin:2px 0 0;color:var(--parchment);}
+  header.top .meta{color:var(--parchment-dim);font-size:11px;margin-top:4px;}
+  nav.tabs{display:flex;gap:6px;margin-bottom:22px;}
+  nav.tabs button{width:auto;background:var(--stone);color:var(--parchment-dim);border:none;border-radius:6px 6px 0 0;
+    padding:9px 20px;font-weight:700;font-family:var(--font-hand);font-size:17px;text-transform:none;letter-spacing:0;}
+  nav.tabs button.active{color:var(--stone-4);background:var(--gold);}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
+  .toolbar label{font-size:11px;color:var(--parchment-dim);text-transform:uppercase;letter-spacing:.05em;margin-right:-4px;}
+  select,input[type=date]{background:var(--stone-4);color:var(--parchment);border:1px solid var(--stone-2);border-radius:4px;
+    padding:8px 10px;font-size:13px;font-family:var(--font-mono);}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:20px;}
+  .kpi{position:relative;background:linear-gradient(160deg, var(--stone) 60%, var(--stone-2));
+    border:1px solid rgba(201,162,39,.28);border-radius:14px;padding:16px 18px;
+    display:flex;align-items:center;gap:14px;box-shadow:0 4px 14px rgba(0,0,0,.4);overflow:hidden;}
+  .kpi::before{content:"";position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;
+    background:radial-gradient(circle, var(--ring-color,var(--gold)) 0%, transparent 70%);opacity:.18;}
+  .kpi .ring-wrap{position:relative;width:68px;height:68px;flex:none;}
+  .kpi .ring-wrap canvas{width:68px!important;height:68px!important;}
+  .kpi .ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:700;}
+  .kpi .body{min-width:0;}
+  .kpi .label{color:var(--parchment-dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;}
+  .kpi .value{font-size:23px;font-weight:700;margin-top:3px;font-family:var(--font-hand);color:var(--parchment);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .kpi .delta{font-size:11.5px;font-weight:700;margin-top:2px;display:inline-flex;align-items:center;gap:4px;}
+  .delta.up{color:var(--moss);} .delta.down{color:var(--danger);} .delta.flat{color:var(--parchment-dim);}
+
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;}
+  @media (max-width:860px){.grid2{grid-template-columns:1fr;}}
+
+  .panel{position:relative;background:var(--stone);border:1px solid rgba(201,162,39,.28);border-radius:14px;
+    padding:22px 20px 20px;margin-bottom:20px;box-shadow:0 4px 14px rgba(0,0,0,.35);}
+  .panel::before{content:"";position:absolute;top:0;left:22px;width:36px;height:8px;background:var(--gold);
+    border-radius:0 0 4px 4px;opacity:.75;}
+  .panel h2{margin:0 0 4px;font-size:19px;font-family:var(--font-hand);color:var(--gold);font-weight:700;}
+  .panel .sub{color:var(--parchment-dim);font-size:12px;margin:0 0 14px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--stone-2);}
+  th{color:var(--parchment-dim);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
+  tr:hover td{background:var(--stone-2);}
+  .right{text-align:right;}
+  .empty{color:var(--parchment-dim);font-size:14px;padding:20px 0;text-align:center;}
+  .scroll{max-height:420px;overflow:auto;}
+  .badge{display:inline-block;background:var(--stone-4);border:1px solid var(--stone-2);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--parchment-dim);}
+  footer{color:var(--parchment-dim);font-size:12px;text-align:center;margin-top:20px;}
+
+  .bubble{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+    background:var(--rust);color:var(--parchment);font-weight:700;font-size:11px;font-family:var(--font-mono);flex:none;
+    box-shadow:0 0 0 2px var(--stone);}
+
+  .cmp-box{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  @media (max-width:600px){.cmp-box{grid-template-columns:1fr;}}
+  .cmp-tile{background:var(--stone-4);border-radius:6px;padding:14px;}
+  .cmp-tile .t-label{font-size:11px;color:var(--parchment-dim);text-transform:uppercase;}
+  .cmp-tile .t-value{font-size:22px;font-family:var(--font-hand);font-weight:700;margin-top:4px;}
+  .acumulado{background:var(--stone-4);border-radius:6px;padding:14px;margin-top:4px;}
+
+  .cmp-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--stone-2);font-size:13px;}
+  .cmp-row:last-child{border-bottom:none;}
+  .cmp-day{font-weight:700;width:78px;}
+  .cmp-bars{flex:1;display:flex;flex-direction:column;gap:3px;}
+  .cmp-bar-track{background:var(--stone-4);border-radius:3px;height:7px;overflow:hidden;}
+  .cmp-bar-fill{height:100%;border-radius:3px;}
+  .cmp-delta{width:60px;text-align:right;font-weight:700;}
+</style>
+</head>
+<body>
+
+<svg class="defs">
+  <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div id="lock">
+  <div class="card">
+    <h1>Sótano Bajo</h1>
+    <p>Funky Panda · dashboard de socios · acceso restringido</p>
+    <div id="err"></div>
+    <input type="password" id="pw" placeholder="Contraseña" autofocus>
+    <button id="enter">Entrar</button>
+  </div>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div>
+      <div class="wordmark">Sótano Bajo</div>
+      <h1>Funky Panda · Dashboard de socios</h1>
+      <div class="meta" id="generatedAt"></div>
+    </div>
+    <span class="badge" id="sucursalCount"></span>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="ventas" class="active">Ventas</button>
+    <button data-tab="inventario">Inventario</button>
+  </nav>
+
+  <section id="tab-ventas">
+    <div class="toolbar">
+      <label>Sucursal</label>
+      <select id="filtroSucursalVentas"><option value="">Todas</option></select>
+      <label>Comparar por</label>
+      <select id="periodoSelect">
+        <option value="dia">Día vs. mismo día semana pasada</option>
+        <option value="semana">Semana vs. semana pasada</option>
+        <option value="mes">Mes vs. mes pasado</option>
+      </select>
+      <label id="diaSelectLabel">Día de referencia</label>
+      <select id="diaSelect"></select>
+    </div>
+
+    <div class="kpis" id="ventasKpis"></div>
+
+    <div class="panel">
+      <h2 id="cmpTitle">¿Cómo me fue vs. la semana pasada?</h2>
+      <p class="sub" id="cmpPeriodoSub">Comparando por día</p>
+      <div class="cmp-box">
+        <div class="cmp-tile">
+          <div class="t-label" id="diaActualLabel">Periodo actual</div>
+          <div class="t-value" id="diaActualValue">—</div>
+          <div class="delta" id="diaActualDelta"></div>
+        </div>
+        <div class="cmp-tile">
+          <div class="t-label" id="diaPasadoLabel">Periodo anterior</div>
+          <div class="t-value" id="diaPasadoValue">—</div>
+        </div>
+      </div>
+      <div class="acumulado">
+        <div class="t-label" id="acumuladoLabel">Acumulado del mes hasta ese día</div>
+        <div class="t-value" id="acumuladoValue" style="font-size:20px;">—</div>
+        <div class="sub" id="acumuladoSub" style="margin:2px 0 0;"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Semana vs. semana pasada, por día</h2>
+        <p class="sub" id="cmpSub">Comparativo de los últimos 7 días contra los 7 anteriores</p>
+        <div id="cmpRows"></div>
+      </div>
+      <div class="panel">
+        <h2>Mezcla de cobro</h2>
+        <p class="sub">Últimos 7 días con datos</p>
+        <canvas id="chartMezcla" height="230"></canvas>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Ventas por semana</h2>
+        <p class="sub">Total acumulado por semana</p>
+        <canvas id="chartSemana" height="140"></canvas>
+      </div>
+      <div class="panel">
+        <h2>Acumulado del periodo</h2>
+        <p class="sub">Ventas corridas (running total)</p>
+        <canvas id="chartAcumulado" height="140"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-bottom:14px;">Detalle diario</h2>
+      <div class="scroll">
+        <table id="tablaVentas">
+          <thead><tr>
+            <th>Fecha</th><th>Sucursal</th><th>Semana</th><th class="right">Recibos</th>
+            <th class="right">Efectivo</th><th class="right">Tarjeta</th><th class="right">Uber Eats</th>
+            <th class="right">Rappi</th><th class="right">Clip</th><th class="right">Total</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-inventario" style="display:none;">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h2 style="margin:0;">Existencias (snapshot diario)</h2>
+        <select id="filtroSucursalInv"><option value="">Todas las sucursales</option></select>
+      </div>
+      <div id="invEmpty" class="empty">Aún no hay snapshot de inventario. Corre todas las noches a las 22:00 — vuelve a subir este archivo (o conéctalo a datos en vivo) después de la primera corrida.</div>
+      <div class="scroll" id="invTableWrap" style="display:none;">
+        <table id="tablaInventario">
+          <thead><tr>
+            <th>Ingrediente</th><th>Sucursal</th><th>Fecha</th><th class="right">Existencia</th><th>Unidad</th><th class="right">Costo Unitario</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>Sótano Bajo · funky panda · snapshot estático, no es una vista en vivo</footer>
+</div>
+
+<script>
+/* ====== DATOS (snapshot generado el 2026-09-28) ====== */
+const DATA = {
+  "generated_at": "2026-09-28T23:30:00-06:00",
+  "sucursales": [
+    {
+      "id": "recy00b9ljOGOYmjp",
+      "nombre": "Funky Panda Brisas",
+      "ciudad": "Ciudad Brisas, Edo Mex"
+    },
+    {
+      "id": "reczTspzmqfMf510m",
+      "nombre": "Funky Panda San Miguel",
+      "ciudad": "San Miguel de Allende, GTO"
+    }
+  ],
+  "ventas": [
+    {
+      "Fecha": "2026-07-22",
+      "Semana": "Semana 1",
+      "Recibos": 5,
+      "Efectivo": 135,
+      "Tarjeta": 3126,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 3261,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-23",
+      "Semana": "Semana 1",
+      "Recibos": 25,
+      "Efectivo": 2057,
+      "Tarjeta": 10075.2,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 525,
+      "Total": 12657.2,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-24",
+      "Semana": "Semana 1",
+      "Recibos": 38,
+      "Efectivo": 7201,
+      "Tarjeta": 17704.6,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 335,
+      "Total": 25240.6,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-25",
+      "Semana": "Semana 1",
+      "Recibos": 35,
+      "Efectivo": 3325.8,
+      "Tarjeta": 14788.6,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 18114.4,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-26",
+      "Semana": "Semana 1",
+      "Recibos": 16,
+      "Efectivo": 1857,
+      "Tarjeta": 8387,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 10244,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-27",
+      "Semana": "Semana 2",
+      "Recibos": 7,
+      "Efectivo": 418,
+      "Tarjeta": 2579,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 2997,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-28",
+      "Semana": "Semana 2",
+      "Recibos": 5,
+      "Efectivo": 85,
+      "Tarjeta": 2449.4,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 2534.4,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-29",
+      "Semana": "Semana 2",
+      "Recibos": 18,
+      "Efectivo": 3225,
+      "Tarjeta": 3647,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 6872,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-30",
+      "Semana": "Semana 2",
+      "Recibos": 29,
+      "Efectivo": 3210,
+      "Tarjeta": 14110.8,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 17320.8,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-07-31",
+      "Semana": "Semana 2",
+      "Recibos": 29,
+      "Efectivo": 2916.3,
+      "Tarjeta": 8479.9,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 11396.2,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-01",
+      "Semana": "Semana 2",
+      "Recibos": 16,
+      "Efectivo": 1769,
+      "Tarjeta": 10413.3,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 12182.3,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-02",
+      "Semana": "Semana 2",
+      "Recibos": 15,
+      "Efectivo": 2152,
+      "Tarjeta": 7243,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 9395,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-03",
+      "Semana": "Semana 3",
+      "Recibos": 7,
+      "Efectivo": 1088.1,
+      "Tarjeta": 3370,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 4458.1,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-04",
+      "Semana": "Semana 3",
+      "Recibos": 6,
+      "Efectivo": 0,
+      "Tarjeta": 2717.4,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 2717.4,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-05",
+      "Semana": "Semana 3",
+      "Recibos": 12,
+      "Efectivo": 1943,
+      "Tarjeta": 2646,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 4589,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-06",
+      "Semana": "Semana 3",
+      "Recibos": 12,
+      "Efectivo": 2405.5,
+      "Tarjeta": 1272.6,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 3678.1,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-07",
+      "Semana": "Semana 3",
+      "Recibos": 22,
+      "Efectivo": 1130.6,
+      "Tarjeta": 11985,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 13115.6,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-08",
+      "Semana": "Semana 3",
+      "Recibos": 14,
+      "Efectivo": 1844,
+      "Tarjeta": 7461,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 9305,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-09",
+      "Semana": "Semana 3",
+      "Recibos": 15,
+      "Efectivo": 1237,
+      "Tarjeta": 6878.6,
+      "UberEats": 255.6,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 8371.2,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-10",
+      "Semana": "Semana 4",
+      "Recibos": 11,
+      "Efectivo": 983.1,
+      "Tarjeta": 3664.9,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 4648,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-11",
+      "Semana": "Semana 4",
+      "Recibos": 7,
+      "Efectivo": 0,
+      "Tarjeta": 3855.5,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 3855.5,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-12",
+      "Semana": "Semana 4",
+      "Recibos": 12,
+      "Efectivo": 852.1,
+      "Tarjeta": 7580.4,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 8432.5,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-13",
+      "Semana": "Semana 4",
+      "Recibos": 9,
+      "Efectivo": 488,
+      "Tarjeta": 1661.2,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 2149.2,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-14",
+      "Semana": "Semana 4",
+      "Recibos": 31,
+      "Efectivo": 7918,
+      "Tarjeta": 14151,
+      "UberEats": 309.2,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 22378.2,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-15",
+      "Semana": "Semana 4",
+      "Recibos": 43,
+      "Efectivo": 1412.2,
+      "Tarjeta": 22966.3,
+      "UberEats": 716.6,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 25095.1,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-16",
+      "Semana": "Semana 4",
+      "Recibos": 16,
+      "Efectivo": 1048.1,
+      "Tarjeta": 7934.8,
+      "UberEats": 50,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 9032.9,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-17",
+      "Semana": "Semana 5",
+      "Recibos": 4,
+      "Efectivo": 534,
+      "Tarjeta": 992,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 1526,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-18",
+      "Semana": "Semana 5",
+      "Recibos": 7,
+      "Efectivo": 553.8,
+      "Tarjeta": 5229,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 5782.8,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-19",
+      "Semana": "Semana 5",
+      "Recibos": 13,
+      "Efectivo": 1525.4,
+      "Tarjeta": 6282,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 7807.4,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-20",
+      "Semana": "Semana 5",
+      "Recibos": 4,
+      "Efectivo": 354,
+      "Tarjeta": 2886,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 3240,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-21",
+      "Semana": "Semana 5",
+      "Recibos": 13,
+      "Efectivo": 2021,
+      "Tarjeta": 7718.8,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 9739.8,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-22",
+      "Semana": "Semana 5",
+      "Recibos": 28,
+      "Efectivo": 2403.7,
+      "Tarjeta": 17248.6,
+      "UberEats": 0,
+      "Rappi": 0,
+      "Clip": 0,
+      "Total": 19652.3,
+      "Sucursal": "Brisas"
+    },
+    {
+      "Fecha": "2026-08-23",
+      "Semana": "Semana 5",
+      "Recibos": 17,
+      "Efectivo": 1775,
+      "Tarjeta": 9290.9,
+      "UberEats": 0,
+      "Rappi": 77.6,
+      "Clip": 0,
+      "Total": 11143.5,
+      "Sucursal": "Brisas"
+    }
+  ],
+  "inventario": []
+};
+
+/* ====== ACCESO ======
+   Candado simple en JavaScript, NO seguridad real: cualquiera con el
+   archivo puede ver el HTML/JS y sus datos. No subas aquí información
+   que no puedas compartir por otros medios. */
+const PASSWORD_SHA256 = "900be01650f6494b21b46a4b6ea3b1cbc4e4716510458880dd82937836a63fb6";
+
+async function sha256(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+document.getElementById("enter").addEventListener("click", tryEnter);
+document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryEnter(); });
+
+async function tryEnter(){
+  const pw = document.getElementById("pw").value;
+  const hash = await sha256(pw);
+  if(hash === PASSWORD_SHA256){
+    sessionStorage.setItem("fp_ok","1");
+    document.getElementById("lock").style.display="none";
+    document.getElementById("app").style.display="block";
+    initApp();
+  } else {
+    document.getElementById("err").textContent = "Contraseña incorrecta";
+  }
+}
+
+if(sessionStorage.getItem("fp_ok")==="1"){
+  document.getElementById("lock").style.display="none";
+  document.getElementById("app").style.display="block";
+  window.addEventListener("DOMContentLoaded", initApp);
+}
+
+const fmtMoney = n => "$" + Number(n||0).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtMoney2 = n => "$" + Number(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtInt = n => Number(n||0).toLocaleString("es-MX");
+const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const COLORS = { gold:"#C9A227", rust:"#B5651D", moss:"#5A8577", plum:"#8A5A74", parchment:"#EDE0C0", parchmentDim:"#B9AC88", danger:"#C0472C", stone:"#3A3630" };
+
+Chart.defaults.color = COLORS.parchmentDim;
+Chart.defaults.font.family = "'Space Mono','Courier New',monospace";
+Chart.defaults.font.size = 11;
+
+function gradient(ctx, chartArea, hex, vertical=true){
+  const g = vertical
+    ? ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+    : ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+  g.addColorStop(0, hex + "ee");
+  g.addColorStop(1, hex + "44");
+  return g;
+}
+
+function initApp(){
+  document.getElementById("generatedAt").textContent = "Actualizado: " + new Date(DATA.generated_at).toLocaleString("es-MX",{dateStyle:"long",timeStyle:"short"});
+  document.getElementById("sucursalCount").textContent = DATA.sucursales.length + " sucursales";
+
+  document.querySelectorAll("nav.tabs button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-ventas").style.display = btn.dataset.tab==="ventas" ? "block":"none";
+      document.getElementById("tab-inventario").style.display = btn.dataset.tab==="inventario" ? "block":"none";
+    });
+  });
+
+  const selV = document.getElementById("filtroSucursalVentas");
+  const selI = document.getElementById("filtroSucursalInv");
+  const nombres = [...new Set(DATA.ventas.map(v=>v.Sucursal))];
+  nombres.forEach(n=>{
+    selV.insertAdjacentHTML("beforeend", `<option value="${n}">${n}</option>`);
+    selI.insertAdjacentHTML("beforeend", `<option value="${n}">${n}</option>`);
+  });
+  selV.addEventListener("change", renderAllVentas);
+  selI.addEventListener("change", renderInventario);
+  document.getElementById("diaSelect").addEventListener("change", renderComparativaPeriodo);
+  document.getElementById("periodoSelect").addEventListener("change", ()=>{ updatePeriodoLabels(); renderComparativaPeriodo(); });
+
+  renderAllVentas();
+  renderInventario();
+}
+
+function rowsFiltradas(){
+  const filtro = document.getElementById("filtroSucursalVentas").value;
+  return DATA.ventas.filter(v => !filtro || v.Sucursal===filtro).slice().sort((a,b)=>a.Fecha.localeCompare(b.Fecha));
+}
+
+function renderAllVentas(){
+  const rows = rowsFiltradas();
+  const sel = document.getElementById("diaSelect");
+  sel.innerHTML = rows.slice().reverse().map(r=>`<option value="${r.Fecha}">${r.Fecha} · ${DOW[new Date(r.Fecha+"T12:00:00").getDay()]}</option>`).join("");
+  updatePeriodoLabels();
+  renderKpis(rows);
+  renderComparativaPeriodo();
+  renderComparativaSemana(rows);
+  renderMezcla(rows);
+  renderSemana(rows);
+  renderAcumulado(rows);
+  renderTabla(rows);
+}
+
+function updatePeriodoLabels(){
+  const periodo = document.getElementById("periodoSelect").value;
+  const titles = {
+    dia: ["¿Cómo me fue vs. la semana pasada?", "Comparando día contra el mismo día de la semana pasada"],
+    semana: ["¿Cómo nos fue esta semana?", "Comparando los 7 días hasta la fecha elegida contra los 7 anteriores"],
+    mes: ["¿Cómo nos fue este mes?", "Comparando lo acumulado del mes hasta la fecha elegida contra el mismo tramo del mes anterior"],
+  };
+  document.getElementById("cmpTitle").textContent = titles[periodo][0];
+  document.getElementById("cmpPeriodoSub").textContent = titles[periodo][1];
+  document.getElementById("diaSelectLabel").textContent = periodo==="dia" ? "Día de referencia" : (periodo==="semana" ? "Última fecha de la semana" : "Fecha de corte del mes");
+}
+
+/* ---- círculos tipo "gauge" para las tarjetas KPI ---- */
+function ringChart(canvasId, pct, color){
+  const clamped = Math.max(0, Math.min(100, pct));
+  return new Chart(document.getElementById(canvasId), {
+    type:"doughnut",
+    data:{ datasets:[{ data:[clamped, 100-clamped], backgroundColor:[color, "#00000030"], borderWidth:0 }] },
+    options:{ responsive:false, animation:false, cutout:"72%",
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} } }
+  });
+}
+
+let charts = {};
+function destroy(name){ if(charts[name]){ charts[name].destroy(); delete charts[name]; } }
+
+function renderKpis(rows){
+  const totalVentas = rows.reduce((a,r)=>a+r.Total,0);
+  const totalRecibos = rows.reduce((a,r)=>a+r.Recibos,0);
+  const ticket = totalRecibos ? totalVentas/totalRecibos : 0;
+  const dias = new Set(rows.map(r=>r.Fecha)).size;
+
+  const last14 = rows.slice(-14);
+  const lastWeek = last14.slice(-7), prevWeek = last14.slice(0, Math.max(0,last14.length-7));
+  const sum = (arr,f) => arr.reduce((a,r)=>a+f(r),0);
+  const deltaPct = (curr, prev) => prev ? ((curr-prev)/prev*100) : null;
+
+  const kpiDefs = [
+    { key:"ventas", label:"Ventas totales", color:COLORS.gold,
+      value: fmtMoney(totalVentas),
+      delta: deltaPct(sum(lastWeek,r=>r.Total), sum(prevWeek,r=>r.Total)) },
+    { key:"recibos", label:"Recibos", color:COLORS.moss,
+      value: fmtInt(totalRecibos),
+      delta: deltaPct(sum(lastWeek,r=>r.Recibos), sum(prevWeek,r=>r.Recibos)) },
+    { key:"ticket", label:"Ticket promedio", color:COLORS.rust,
+      value: fmtMoney2(ticket),
+      delta: deltaPct(
+        sum(lastWeek,r=>r.Recibos) ? sum(lastWeek,r=>r.Total)/sum(lastWeek,r=>r.Recibos) : 0,
+        sum(prevWeek,r=>r.Recibos) ? sum(prevWeek,r=>r.Total)/sum(prevWeek,r=>r.Recibos) : 0
+      ) },
+    { key:"dias", label:"Días con datos", color:COLORS.plum,
+      value: fmtInt(dias), delta:null },
+  ];
+
+  document.getElementById("ventasKpis").innerHTML = kpiDefs.map(k => `
+    <div class="kpi" style="--ring-color:${k.color}">
+      <div class="ring-wrap">
+        <canvas id="ring-${k.key}"></canvas>
+        <div class="ring-center">${k.delta!==null ? (k.delta>=0?'+':'')+k.delta.toFixed(0)+'%' : '★'}</div>
+      </div>
+      <div class="body">
+        <div class="label">${k.label}</div>
+        <div class="value">${k.value}</div>
+        ${k.delta!==null ? `<div class="delta ${k.delta>0.5?'up':k.delta<-0.5?'down':'flat'}">${k.delta>0?'▲':k.delta<0?'▼':'■'} vs. semana previa</div>` : `<div class="delta flat">histórico</div>`}
+      </div>
+    </div>
+  `).join("");
+
+  kpiDefs.forEach(k=>{
+    destroy("ring-"+k.key);
+    const pct = k.delta===null ? 100 : Math.min(100, Math.abs(k.delta)*2 + 25);
+    charts["ring-"+k.key] = ringChart("ring-"+k.key, pct, k.delta!==null && k.delta<0 ? COLORS.danger : k.color);
+  });
+}
+
+/* ---- comparativo flexible: día / semana / mes ---- */
+function sumRange(rows, fromDate, toDate){
+  return rows.filter(r=>r.Fecha>=fromDate && r.Fecha<=toDate).reduce((a,r)=>a+r.Total,0);
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);
+}
+
+function renderComparativaPeriodo(){
+  const rows = rowsFiltradas();
+  const fecha = document.getElementById("diaSelect").value;
+  const periodo = document.getElementById("periodoSelect").value;
+  if(!fecha) return;
+
+  let actualLabel, actualValue, prevLabel, prevValue, acumLabel, acumValue, acumSub;
+
+  if(periodo==="dia"){
+    const actual = rows.find(r=>r.Fecha===fecha);
+    const fechaPrev = addDays(fecha,-7);
+    const previo = rows.find(r=>r.Fecha===fechaPrev);
+    const dow = DOW[new Date(fecha+"T12:00:00").getDay()];
+    actualLabel = `${dow} ${fecha}`; actualValue = actual ? actual.Total : 0;
+    prevLabel = `${dow} pasado (${fechaPrev})`; prevValue = previo ? previo.Total : null;
+    const mes = fecha.slice(0,7);
+    const acumRows = rows.filter(r=> r.Fecha.slice(0,7)===mes && r.Fecha<=fecha);
+    acumLabel = "Acumulado del mes hasta ese día";
+    acumValue = acumRows.reduce((a,r)=>a+r.Total,0);
+    acumSub = `${acumRows.length} día(s) del mes registrados hasta el ${fecha}`;
+  } else if(periodo==="semana"){
+    const desde = addDays(fecha,-6);
+    actualValue = sumRange(rows, desde, fecha);
+    actualLabel = `Semana del ${desde} al ${fecha}`;
+    const prevDesde = addDays(fecha,-13), prevHasta = addDays(fecha,-7);
+    prevValue = sumRange(rows, prevDesde, prevHasta);
+    prevLabel = `Semana previa (${prevDesde} → ${prevHasta})`;
+    const mes = fecha.slice(0,7);
+    const acumRows = rows.filter(r=> r.Fecha.slice(0,7)===mes && r.Fecha<=fecha);
+    acumLabel = "Acumulado del mes hasta esa fecha";
+    acumValue = acumRows.reduce((a,r)=>a+r.Total,0);
+    acumSub = `${acumRows.length} día(s) del mes registrados hasta el ${fecha}`;
+  } else { // mes
+    const diaNum = Number(fecha.slice(8,10));
+    const mesActual = fecha.slice(0,7);
+    const desdeActual = mesActual+"-01";
+    actualValue = sumRange(rows, desdeActual, fecha);
+    actualLabel = `${mesActual} (día 1 al ${diaNum})`;
+
+    const dPrevMonth = new Date(fecha+"T12:00:00"); dPrevMonth.setMonth(dPrevMonth.getMonth()-1);
+    const mesPrev = dPrevMonth.toISOString().slice(0,7);
+    const desdePrev = mesPrev+"-01";
+    const hastaPrevDiaNum = Math.min(diaNum, new Date(dPrevMonth.getFullYear(), dPrevMonth.getMonth()+1, 0).getDate());
+    const hastaPrev = mesPrev+"-"+String(hastaPrevDiaNum).padStart(2,"0");
+    prevValue = sumRange(rows, desdePrev, hastaPrev);
+    prevLabel = `${mesPrev} (día 1 al ${hastaPrevDiaNum})`;
+
+    acumLabel = "Acumulado del mes hasta esa fecha";
+    acumValue = actualValue;
+    acumSub = `Mismo valor que "mes actual" — es el acumulado del mes en curso`;
+  }
+
+  document.getElementById("diaActualLabel").textContent = actualLabel;
+  document.getElementById("diaActualValue").textContent = fmtMoney2(actualValue);
+  document.getElementById("diaPasadoLabel").textContent = prevLabel;
+  document.getElementById("diaPasadoValue").textContent = prevValue!==null ? fmtMoney2(prevValue) : "—";
+
+  const deltaEl = document.getElementById("diaActualDelta");
+  if(prevValue){
+    const delta = (actualValue-prevValue)/prevValue*100;
+    const cls = delta>0.5?"up":delta<-0.5?"down":"flat";
+    const arrow = delta>0.5?"▲":delta<-0.5?"▼":"■";
+    deltaEl.className = "delta "+cls;
+    deltaEl.textContent = `${arrow} ${Math.abs(delta).toFixed(1)}% vs. periodo anterior`;
+  } else {
+    deltaEl.className = "delta flat";
+    deltaEl.textContent = "Sin dato del periodo anterior";
+  }
+
+  document.getElementById("acumuladoLabel").textContent = acumLabel;
+  document.getElementById("acumuladoValue").textContent = fmtMoney(acumValue);
+  document.getElementById("acumuladoSub").textContent = acumSub;
+}
+
+function renderComparativaSemana(rows){
+  const last14 = rows.slice(-14);
+  const wrap = document.getElementById("cmpRows");
+  const sub = document.getElementById("cmpSub");
+
+  if(last14.length < 14){
+    wrap.innerHTML = `<div class="empty">Todavía no hay 14 días seguidos de datos para comparar semana contra semana.</div>`;
+    return;
+  }
+  const prevWeek = last14.slice(0,7), lastWeek = last14.slice(7);
+  sub.textContent = `${lastWeek[0].Fecha} → ${lastWeek[6].Fecha}  vs.  ${prevWeek[0].Fecha} → ${prevWeek[6].Fecha}`;
+
+  const maxVal = Math.max(...last14.map(r=>r.Total));
+  wrap.innerHTML = lastWeek.map((r,i)=>{
+    const prev = prevWeek[i];
+    const delta = prev.Total ? (r.Total - prev.Total)/prev.Total*100 : 0;
+    const dow = DOW[new Date(r.Fecha+"T12:00:00").getDay()];
+    const cls = delta>0.5?"up":delta<-0.5?"down":"flat";
+    const arrow = delta>0.5?"▲":delta<-0.5?"▼":"■";
+    return `
+      <div class="cmp-row">
+        <span class="bubble">${i+1}</span>
+        <div class="cmp-day">${dow}</div>
+        <div class="cmp-bars">
+          <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${(r.Total/maxVal*100).toFixed(0)}%;background:${COLORS.gold};"></div></div>
+          <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${(prev.Total/maxVal*100).toFixed(0)}%;background:${COLORS.parchmentDim};"></div></div>
+        </div>
+        <div class="cmp-delta delta ${cls}">${arrow} ${Math.abs(delta).toFixed(0)}%</div>
+      </div>`;
+  }).join("") + `<div style="margin-top:10px;font-size:11px;color:var(--parchment-dim);">■ dorado = esta semana &nbsp; ■ claro = semana pasada</div>`;
+}
+
+function renderMezcla(rows){
+  const last7 = rows.slice(-7);
+  const totales = { Efectivo:0, Tarjeta:0, "Uber Eats":0, Rappi:0, Clip:0 };
+  last7.forEach(r=>{ totales.Efectivo+=r.Efectivo; totales.Tarjeta+=r.Tarjeta; totales["Uber Eats"]+=r.UberEats; totales.Rappi+=r.Rappi; totales.Clip+=r.Clip; });
+  destroy("mezcla");
+  charts["mezcla"] = new Chart(document.getElementById("chartMezcla"), {
+    type:"doughnut",
+    data:{ labels:Object.keys(totales), datasets:[{ data:Object.values(totales),
+      backgroundColor:[COLORS.gold,COLORS.moss,COLORS.rust,COLORS.plum,COLORS.danger], borderColor:COLORS.stone, borderWidth:2 }] },
+    options:{ responsive:true, plugins:{ legend:{ position:"bottom", labels:{ boxWidth:10, padding:12, font:{size:11} } },
+      tooltip:{ callbacks:{ label:c=> ` ${c.label}: ${fmtMoney(c.raw)}` } } }, cutout:"62%" }
+  });
+}
+
+function renderSemana(rows){
+  const porSemana = {};
+  rows.forEach(r=>{ porSemana[r.Semana] = (porSemana[r.Semana]||0) + r.Total; });
+  const semanas = Object.keys(porSemana).sort();
+  destroy("semana");
+  charts["semana"] = new Chart(document.getElementById("chartSemana"), {
+    type:"bar",
+    data:{ labels:semanas, datasets:[{ label:"Ventas", data:semanas.map(s=>porSemana[s]),
+      backgroundColor: ctx => { const {chartArea}=ctx.chart; if(!chartArea) return COLORS.gold; return gradient(ctx.chart.ctx, chartArea, COLORS.gold, false); },
+      borderRadius:4, maxBarThickness:46 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}}},
+      scales:{ y:{ ticks:{ callback:v=>"$"+v.toLocaleString("es-MX") }, grid:{color:"#4A4438"} }, x:{ grid:{display:false} } } }
+  });
+}
+
+function renderAcumulado(rows){
+  let running = 0;
+  const points = rows.map(r=>{ running += r.Total; return running; });
+  destroy("acumulado");
+  charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
+    type:"line",
+    data:{ labels: rows.map(r=>r.Fecha), datasets:[{ data: points, borderColor: COLORS.moss, borderWidth:2.5, pointRadius:0, tension:.25, fill:true,
+      backgroundColor: ctx => { const {chartArea}=ctx.chart; if(!chartArea) return COLORS.moss+"33"; return gradient(ctx.chart.ctx, chartArea, COLORS.moss); } }] },
+    options:{ responsive:true, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}}},
+      scales:{ y:{ ticks:{ callback:v=>"$"+v.toLocaleString("es-MX") }, grid:{color:"#4A4438"} },
+               x:{ ticks:{ maxTicksLimit:8 }, grid:{display:false} } } }
+  });
+}
+
+function renderTabla(rows){
+  const tbody = document.querySelector("#tablaVentas tbody");
+  tbody.innerHTML = rows.slice().sort((a,b)=> b.Fecha.localeCompare(a.Fecha)).map(r=>`
+    <tr>
+      <td>${r.Fecha}</td><td>${r.Sucursal}</td><td>${r.Semana}</td>
+      <td class="right">${fmtInt(r.Recibos)}</td>
+      <td class="right">${fmtMoney2(r.Efectivo)}</td>
+      <td class="right">${fmtMoney2(r.Tarjeta)}</td>
+      <td class="right">${fmtMoney2(r.UberEats)}</td>
+      <td class="right">${fmtMoney2(r.Rappi)}</td>
+      <td class="right">${fmtMoney2(r.Clip)}</td>
+      <td class="right"><strong>${fmtMoney2(r.Total)}</strong></td>
+    </tr>`).join("");
+}
+
+function renderInventario(){
+  const filtro = document.getElementById("filtroSucursalInv").value;
+  const rows = DATA.inventario.filter(v => !filtro || v.Sucursal===filtro);
+  document.getElementById("invEmpty").style.display = rows.length ? "none" : "block";
+  document.getElementById("invTableWrap").style.display = rows.length ? "block" : "none";
+  document.querySelector("#tablaInventario tbody").innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.Ingrediente}</td><td>${r.Sucursal}</td><td>${r.Fecha}</td>
+      <td class="right">${fmtInt(r.Existencia)}</td><td>${r.Unidad}</td>
+      <td class="right">${fmtMoney2(r.CostoUnitario)}</td>
+    </tr>`).join("");
+}
+</script>
+</body>
+</html>
