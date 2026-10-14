@@ -2,6 +2,9 @@ name: refresh-dashboards
 on:
   schedule:
     - cron: '30 12 * * *'   # 06:30 CDMX
+    - cron: '0 16 * * *'    # 10:00 CDMX
+    - cron: '0 20 * * *'    # 14:00 CDMX
+    - cron: '0 0 * * *'     # 18:00 CDMX
     - cron: '45 4 * * *'    # 22:45 CDMX
   workflow_dispatch:
 permissions: {contents: write}
