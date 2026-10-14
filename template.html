@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>__TITLE__</title>
+<style>
+:root{
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6f6d67; --grid:#e1e0d9; --axis:#c3c2b7;
+  --good:#006300; --bad:#b42323; --warn-bg:#fff4d6; --warn-ink:#6b4b00; --accent:#2a78d6;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --seq:#2a78d6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#a09f97; --grid:#2c2c2a; --axis:#383835;
+  --good:#3ecf5a; --bad:#ff7a7a; --warn-bg:#3a2f0d; --warn-ink:#f3d58a; --accent:#3987e5;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --seq:#3987e5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#a09f97; --grid:#2c2c2a; --axis:#383835;
+  --good:#3ecf5a; --bad:#ff7a7a; --warn-bg:#3a2f0d; --warn-ink:#f3d58a; --accent:#3987e5;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --seq:#3987e5; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-inline:16px;padding-block:0 40px}
+.wrap{max-width:1120px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;padding-block:20px 12px}
+h1{font:700 22px/1.2 system-ui,sans-serif;margin:0;letter-spacing:-.01em}
+.sub{color:var(--ink2);margin-top:2px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--page);display:flex;flex-wrap:wrap;gap:8px 16px;padding-block:8px;border-bottom:1px solid var(--grid)}
+.seg{display:inline-flex;max-width:100%;overflow-x:auto;border:1px solid var(--axis);border-radius:8px}
+.seg button{white-space:nowrap;flex:none;background:transparent;color:var(--ink2);border:0;padding:6px 11px;font:inherit;cursor:pointer;min-height:34px}
+.seg button+button{border-left:1px solid var(--axis)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--page);font-weight:600}
+h2{font:700 13px/1 system-ui;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--grid)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--surface);border:1px solid var(--grid);border-radius:10px;padding:14px;min-width:0}
+.card h3{font:600 13px/1.3 system-ui;margin:0 0 2px;color:var(--ink)}
+.card .note{color:var(--muted);font-size:12px;margin:0 0 8px}
+.kpi .v{font:700 24px/1.15 system-ui;font-variant-numeric:tabular-nums;margin-top:4px}
+.kpi .l{color:var(--ink2);font-size:12px}
+.kpi .d{font-size:12px;color:var(--muted);margin-top:2px}
+.tools{float:right;margin-left:8px}
+.tools button{background:transparent;border:1px solid var(--axis);color:var(--ink2);border-radius:6px;font:12px system-ui;padding:3px 8px;cursor:pointer}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--grid);font-size:13px}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--ink2);font-weight:600;font-size:12px}
+tr.tot td{font-weight:700;border-top:1px solid var(--axis)}
+.scroll{overflow-x:auto}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2);margin:4px 0 6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+svg{display:block;max-width:100%;overflow:visible}
+svg text{fill:var(--muted);font:11px system-ui}
+svg .lbl{fill:var(--ink2)}
+.hb{display:grid;grid-template-columns:minmax(90px,36%) 1fr auto;gap:8px;align-items:center;padding:3px 0;font-size:13px}
+.hb .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .b{height:10px;background:transparent;position:relative}
+.hb .b span{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--seq);min-width:2px}
+.hb .n{font-variant-numeric:tabular-nums;color:var(--ink2);text-align:right;white-space:nowrap}
+.banner{background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:10px 12px;margin:12px 0;font-size:13px}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.pend{color:var(--muted);font-style:italic}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--page);padding:6px 9px;border-radius:6px;font-size:12px;line-height:1.35;z-index:50;display:none;max-width:260px}
+footer{margin-top:36px;color:var(--muted);font-size:12px}
+.live{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.live button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+.live button:disabled{opacity:.5}
+@media (max-width:520px){h1{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1 id="ttl"></h1><div class="sub" id="sub"></div></div>
+  <div class="sub" id="cut"></div>
+</header>
+<div class="bar" id="bar"></div>
+<main id="main"></main>
+<footer id="foot"></footer>
+</div>
+<div id="tip"></div>
+<script>
+const DATA=/*__DATA__*/null;
+const LIVE_URL=''; // webhook Make "poster-live" (cache 30 min)
+const M=DATA.meta, FULL=DATA.level==='full';
+const $=s=>document.querySelector(s);
+const peso=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Math.round(n||0));
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const num=n=>new Intl.NumberFormat('es-MX',{maximumFractionDigits:0}).format(Math.round(n||0));
+const pct=(a,b)=>b?((a/b*100).toFixed(1)+'%'):'—';
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'], MESL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(Date.UTC(a,b-1,c))};
+const ds=d=>d.toISOString().slice(0,10);
+const addD=(s,n)=>{const d=pd(s);d.setUTCDate(d.getUTCDate()+n);return ds(d)};
+const wk=s=>{const d=pd(s);const w=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-w);return ds(d)};
+const lbl=s=>{const d=pd(s);return d.getUTCDate()+' '+MES[d.getUTCMonth()]};
+const BN={B:'Brisas',S:'San Miguel'};
+const BC={B:'var(--s1)',S:'var(--s2)'};
+const GC={}; M.grupos.forEach((g,i)=>GC[g]='var(--s'+(i+1)+')');
+const CATN=M.cat;
+
+const st={br:DATA.branches.length>1?'ALL':DATA.branches[0],per:'all',gran:'d',tbl:{}};
+const last=M.ultimoCorte;
+const months=[...new Set(DATA.daily.map(x=>x.d.slice(0,7)))].sort();
+
+function inPer(d){
+  if(st.per==='all')return true;
+  if(st.per==='7d')return d>addD(last,-7);
+  if(st.per==='30d')return d>addD(last,-30);
+  return d.slice(0,7)===st.per;
+}
+const sel=a=>a.filter(x=>(st.br==='ALL'||x.b===st.br)&&inPer(x.d));
+const sum=(a,k)=>a.reduce((s,x)=>s+(x[k]||0),0);
+
+/* ---------- tooltip ---------- */
+const tip=$('#tip');
+document.addEventListener('pointermove',e=>{
+  const t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t){tip.style.display='none';return}
+  tip.innerHTML=t.getAttribute('data-tip').replace(/\n/g,'<br>');tip.style.display='block';
+  const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.min(innerWidth-w-8,Math.max(8,e.clientX+12))+'px';
+  tip.style.top=(e.clientY+h+20>innerHeight?e.clientY-h-12:e.clientY+14)+'px';
+});
+document.addEventListener('pointerleave',()=>tip.style.display='none');
+
+/* ---------- charts ---------- */
+function niceMax(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const f=v/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+const short=n=>n>=1e6?(n/1e6).toFixed(1).replace('.0','')+' M':n>=1e3?(n/1e3).toFixed(1).replace('.0','')+' k':String(Math.round(n));
+function frame(W,H,max,ml=44){
+  let g='';for(let i=0;i<=4;i++){const v=max*i/4,y=H.t+(H.h)*(1-i/4);
+    g+=`<line x1="${ml}" x2="${W-6}" y1="${y}" y2="${y}" stroke="${i?'var(--grid)':'var(--axis)'}"/><text x="${ml-6}" y="${y+4}" text-anchor="end">${short(v)}</text>`}
+  return g}
+function legend(items){return `<div class="legend">${items.map(i=>`<span><i style="background:${i[1]}"></i>${i[0]}</span>`).join('')}</div>`}
+function barChart(labels,series,o={}){
+  const W=o.W||Math.max(280,Math.min(1080,($('#main').clientWidth||600)/(o.cols||1)-30)),Hh=o.h||220;
+  const H={t:10,h:Hh-34},ml=44,n=labels.length;
+  const tot=labels.map((_,i)=>series.reduce((s,x)=>s+(x.v[i]||0),0));
+  const max=niceMax(o.stack?Math.max(...tot):Math.max(...series.flatMap(s=>s.v)));
+  const slot=(W-ml-6)/n,bw=Math.max(3,Math.min(26,slot*(o.stack?.62:.7)/(o.stack?1:series.length)));
+  let g=frame(W,H,max,ml),every=Math.ceil(n/Math.floor((W-ml)/52));
+  labels.forEach((l,i)=>{
+    const cx=ml+slot*(i+.5);let acc=0;
+    series.forEach((s,k)=>{
+      const v=s.v[i]||0,h=v/max*H.h;
+      const x=o.stack?cx-bw/2:cx-bw*series.length/2+k*bw, y=o.stack?H.t+H.h-(acc+v)/max*H.h:H.t+H.h-h;
+      if(v>0)g+=`<rect x="${x}" y="${y}" width="${Math.max(2,bw-(o.stack?0:1))}" height="${Math.max(1,h)}" rx="${o.stack?0:2}" fill="${s.c}" stroke="${o.stack?'var(--surface)':'none'}" stroke-width="2" data-tip="<b>${l}</b>\n${s.n}: ${o.fmt?o.fmt(v):peso(v)}${o.stack&&series.length>1?'\nTotal: '+(o.fmt?o.fmt(tot[i]):peso(tot[i])):''}"/>`;
+      acc+=v});
+    g+=`<rect x="${cx-slot/2}" y="${H.t}" width="${slot}" height="${H.h}" fill="transparent" data-tip="<b>${l}</b>\n${series.map(s=>s.n+': '+(o.fmt?o.fmt(s.v[i]||0):peso(s.v[i]||0))).join('\n')}"/>`;
+    if(i%every===0)g+=`<text x="${cx}" y="${Hh-12}" text-anchor="middle">${l}</text>`});
+  if(o.line){const pts=o.line.v.map((v,i)=>[ml+slot*(i+.5),H.t+H.h-Math.min(v,max)/max*H.h]);
+    g+=`<polyline fill="none" stroke="${o.line.c}" stroke-width="2" stroke-dasharray="5 3" points="${pts.map(p=>p.join(',')).join(' ')}"/>`}
+  return `<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${o.aria||'gráfica'}">${g}</svg>`}
+function lineChart(xs,series,o={}){
+  const W=o.W||Math.max(280,Math.min(1080,($('#main').clientWidth||600)/(o.cols||1)-30)),Hh=o.h||240;
+  const H={t:12,h:Hh-36},ml=48,mr=70,n=xs.length;
+  const max=niceMax(Math.max(1,...series.flatMap(s=>s.v.filter(v=>v!=null))));
+  const X=i=>ml+(W-ml-mr)*(n>1?i/(n-1):0.5),Y=v=>H.t+H.h-v/max*H.h;
+  let g=frame(W,H,max,ml).replace(new RegExp(`x2="${W-6}"`,'g'),`x2="${W-mr+10}"`);
+  const every=o.all?1:Math.ceil(n/Math.floor((W-ml-mr)/40));
+  xs.forEach((x,i)=>{if(x!==''&&i%every===0)g+=`<text x="${X(i)}" y="${Hh-12}" text-anchor="middle">${x}</text>`});
+  series.forEach(s=>{
+    const pts=s.v.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
+    if(!pts.length)return;
+    g+=`<polyline fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+    const lp=pts[pts.length-1],lv=s.v.filter(v=>v!=null).pop();
+    g+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${s.c}" stroke="var(--surface)" stroke-width="2"/><text class="lbl" x="${lp[0]+8}" y="${lp[1]+4}">${s.n} · ${short(lv)}</text>`;
+  });
+  xs.forEach((x,i)=>{g+=`<rect x="${X(i)-(W-ml-mr)/n/2}" y="${H.t}" width="${(W-ml-mr)/n}" height="${H.h}" fill="transparent" data-tip="<b>${x}</b>\n${series.map(s=>s.v[i]==null?'':s.n+': '+peso(s.v[i])).filter(Boolean).join('\n')}"/>`});
+  return `<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${o.aria||'gráfica'}">${g}</svg>`}
+function hbars(rows,fmt=peso,colorFn){
+  const mx=Math.max(1,...rows.map(r=>r.v));
+  return rows.map(r=>`<div class="hb" data-tip="<b>${esc(r.n)}</b>\n${fmt(r.v)}${r.extra?'\n'+r.extra:''}"><div class="t">${esc(r.n)}</div><div class="b"><span style="width:${r.v/mx*100}%;${colorFn?'background:'+colorFn(r):''}"></span></div><div class="n">${r.right??fmt(r.v)}</div></div>`).join('')||'<p class="note">Sin datos en el periodo.</p>'}
+function table(head,rows,foot){
+  return `<div class="scroll"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}${foot?`<tr class="tot">${foot.map(c=>`<td>${c}</td>`).join('')}</tr>`:''}</tbody></table></div>`}
+function card(id,title,note,chartHTML,tableHTML,leg){
+  const t=st.tbl[id];
+  return `<div class="card" id="c-${id}"><span class="tools">${tableHTML?`<button data-t="${id}">${t?'Ver gráfica':'Ver tabla'}</button>`:''}</span><h3>${title}</h3><p class="note">${note||''}</p>${t&&tableHTML?tableHTML:(leg||'')+chartHTML}</div>`}
+
+function isoWk(s){const d=new Date(s+'T12:00:00Z');const n=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-n+3);const y=d.getUTCFullYear();const j=new Date(Date.UTC(y,0,4));return [y,1+Math.round(((d-j)/864e5-3+((j.getUTCDay()+6)%7))/7)]}
+const histMap=()=>{const m={};(DATA.hist||[]).forEach(h=>m[h.b+'|'+h.y+'|'+h.w]=h.i);return m};
+/* ---------- agregados ---------- */
+function bucketRange(){ // dias de datos del periodo (para prorrateo)
+  const d=sel(DATA.daily).map(x=>x.d);return [...new Set(d)].length}
+function groupOf(cid){return M.grupo[cid]||'Otros'}
+const isBeb=cid=>M.bebidas.includes(cid);
+function topN(isB){
+  const m={};sel(DATA.prods).filter(p=>isBeb(p.cid)===isB&&p.cid!==6).forEach(p=>{const o=m[p.n]||(m[p.n]={n:p.n,q:0,s:0});o.q+=p.q;o.s+=p.s});
+  return Object.values(m).sort((a,b)=>b.q-a.q).slice(0,10)}
+function plBlock(){
+  const dias=bucketRange(),brs=st.br==='ALL'?DATA.branches:[st.br];
+  const ing=sum(sel(DATA.daily),'ing'),g=sel(DATA.gastos);
+  const by=k=>g.filter(x=>x.bk===k).reduce((s,x)=>s+x.t,0);
+  const fijos=brs.reduce((s,b)=>s+Object.values(DATA.fijos[b]).reduce((a,c)=>a+c,0),0)/30*dias;
+  const nom=brs.reduce((s,b)=>s+DATA.nomina[b],0)/7*dias;
+  return {dias,ing,ins:by('Insumos'),nomR:by('Nómina'),nom,fijos,serv:by('Servicios'),com:0.04*(sum(sel(DATA.daily),'tj')+sum(sel(DATA.daily),'mp')+sum(sel(DATA.daily),'pw')+sum(sel(DATA.daily),'cl')),comR:by('Comisiones'),imp:0.10*(0.2*sum(sel(DATA.daily),'ef')+sum(sel(DATA.daily),'mp')),op:by('Operativos'),inv:by('Inversión'),pre:by('Préstamos'),sc:by('Sin clasificar'),
+    scN:g.filter(x=>x.bk==='Sin clasificar').length}}
+
+/* ---------- render ---------- */
+function render(){
+  const D=sel(DATA.daily),ing=sum(D,'ing'),rec=sum(D,'rec'),P=plBlock();
+  const util=P.ing-P.ins-P.nom-P.fijos-P.com-P.imp-P.op;
+  let h='';
+  // KPIs
+  const kp=[['Ventas',peso(ing),`${P.dias} días con venta`],['Tickets',num(rec),'órdenes cobradas'],['Ticket promedio',peso(rec?ing/rec:0),'ventas ÷ tickets'],['Propinas',peso(sum(D,'prop')),'no incluidas en ventas']];
+  if(FULL||true)kp.push(['Margen operativo',pct(util,P.ing),FULL?'ver P&L abajo':'ver P&L abajo']);
+  h+=`<div class="kpis" style="margin-top:16px">${kp.map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="d">${k[2]}</div></div>`).join('')}</div>`;
+  if(FULL)h+=liveCard();
+
+  /* VENTAS */
+  h+=`<h2>Ventas</h2><div class="grid">`;
+  // tendencia
+  const keyf=st.gran==='d'?x=>x:st.gran==='w'?wk:x=>x.slice(0,7)+'-01';
+  const keys=[...new Set(D.map(x=>keyf(x.d)))].sort();
+  const brs=st.br==='ALL'?DATA.branches:[st.br];
+  const series=brs.map(b=>({n:BN[b],c:BC[b],v:keys.map(k=>sum(D.filter(x=>x.b===b&&keyf(x.d)===k),'ing'))}));
+  const kl=keys.map(k=>st.gran==='m'?MESL[+k.slice(5,7)-1]:(st.gran==='w'?'Sem '+lbl(k):lbl(k)));
+  const tr=`<div class="seg" style="margin-bottom:8px">${[['d','Día'],['w','Semana'],['m','Mes']].map(a=>`<button data-g="${a[0]}" aria-pressed="${st.gran===a[0]}">${a[1]}</button>`).join('')}</div>`;
+  const tTab=table(['Periodo',...series.map(s=>s.n),'Total'],keys.map((k,i)=>[kl[i],...series.map(s=>peso(s.v[i])),peso(series.reduce((a,s)=>a+s.v[i],0))]),['Total',...series.map(s=>peso(s.v.reduce((a,c)=>a+c,0))),peso(ing)]);
+  h+=`<div style="grid-column:1/-1">`+card('tend','Ventas por '+({d:'día',w:'semana',m:'mes'})[st.gran],'Ingreso Poster (después de descuentos, sin propina)',tr+barChart(kl,series,{stack:true,h:230,aria:'Ventas por periodo'}),tTab,series.length>1?legend(series.map(s=>[s.n,s.c])):'')+`</div>`;
+  // acumulado
+  const ms=months.filter(m=>sel(DATA.daily).some(x=>x.d.slice(0,7)===m)||st.per==='all'||true);
+  const aSeries=ms.map((m,i)=>{let acc=0;const v=[];for(let d=1;d<=31;d++){const ds_=m+'-'+String(d).padStart(2,'0');const rows=DATA.daily.filter(x=>(st.br==='ALL'||x.b===st.br)&&x.d===ds_);
+    if(ds_>last||(!rows.length&&d>1&&v[v.length-1]==null)){v.push(null);continue}acc+=sum(rows,'ing');v.push(acc)}
+    return{n:MESL[+m.slice(5)-1].slice(0,3),c:'var(--s'+(i+1)+')',v}});
+  // truncar nulls por mes que aun no llega
+  const aTab=table(['Día',...aSeries.map(s=>s.n)],Array.from({length:31},(_,i)=>[i+1,...aSeries.map(s=>s.v[i]==null?'—':peso(s.v[i]))]));
+  h+=`<div style="grid-column:1/-1">`+card('acum','Acumulado por mes','Venta acumulada día a día, mes contra mes'+(st.br==='ALL'?' (ambas sucursales)':''),lineChart(Array.from({length:31},(_,i)=>i+1),aSeries,{aria:'Acumulado mensual'}),aTab,legend(aSeries.map(s=>[s.n,s.c])))+`</div>`;
+  // canal
+  const C=sel(DATA.canal),cn=c=>({t:sum(C.filter(x=>x.c===c),'t'),i:sum(C.filter(x=>x.c===c),'i')});
+  const chs=['Salón','Para llevar','Reparto'].map(c=>[c,cn(c)]),ub=cn('Uber Eats'),totC=chs.reduce((s,c)=>s+c[1].i,0);
+  h+=`<div class="card"><h3>Canal de venta</h3><p class="note">Salón + Para llevar + Reparto suman la venta total. Uber Eats va incluido en ellos (no se suma otra vez). DiDi / otras plataformas: pendiente.</p>`+
+   table(['Canal','Tickets','Importe','Ticket prom.','% venta'],chs.map(([n,v])=>[n,num(v.t),peso(v.i),peso(v.t?v.i/v.t:0),pct(v.i,totC)]),['Total',num(chs.reduce((s,c)=>s+c[1].t,0)),peso(totC),'',''])+
+   `<table style="margin-top:6px"><tbody><tr><td>↳ de los cuales Uber Eats</td><td>${num(ub.t)}</td><td>${peso(ub.i)}</td><td>${peso(ub.t?ub.i/ub.t:0)}</td><td>${pct(ub.i,totC)}</td></tr></tbody></table></div>`;
+  // pago
+  const pm=[['Efectivo','ef'],['Tarjeta banco','tj'],['Uber Eats','ub'],['Rappi','rp'],['Clip','cl'],['Mercado Pago','mp'],['Paywise','pw']].map(([n,k])=>({n,v:sum(D,k)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const pt=pm.reduce((s,r)=>s+r.v,0);pm.forEach(r=>r.right=peso(r.v)+' · '+pct(r.v,pt));
+  h+=`<div class="card"><h3>Método de pago</h3><p class="note">Cómo pagó el cliente (independiente del canal).</p>${hbars(pm,peso)}</div>`;
+  // composicion
+  const PR=sel(DATA.prods),ptot=sum(PR,'s'),cm={};PR.forEach(p=>{const g=groupOf(p.cid);cm[g]=(cm[g]||0)+p.s});
+  const cr=M.grupos.map(g=>({n:g,v:cm[g]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);cr.forEach(r=>r.right=peso(r.v)+' · '+pct(r.v,ptot));
+  h+=`<div class="card"><h3>Composición por categoría</h3><p class="note">% sobre la venta de productos del periodo.</p>${hbars(cr,peso,r=>'background:'+GC[r.n])}</div>`;
+  // apiladas semanal
+  const wks=[...new Set(PR.map(p=>wk(p.d)))].sort();
+  const sSeries=M.grupos.map(g=>({n:g,c:GC[g],v:wks.map(w=>PR.filter(p=>wk(p.d)===w&&groupOf(p.cid)===g).reduce((s,p)=>s+p.s,0))})).filter(s=>s.v.some(v=>v>0));
+  const sTab=table(['Semana',...sSeries.map(s=>s.n),'Total'],wks.map((w,i)=>[lbl(w),...sSeries.map(s=>peso(s.v[i])),peso(sSeries.reduce((a,s)=>a+s.v[i],0))]));
+  h+=`<div style="grid-column:1/-1">`+card('sem','Ventas semanales por categoría','Barras apiladas; cada semana va de lunes a domingo.',barChart(wks.map(lbl),sSeries,{stack:true,h:250,aria:'Ventas semanales por categoría'}),sTab,legend(sSeries.map(s=>[s.n,s.c])))+`</div>`;
+  // tops
+  const tp=(id,title,isB)=>{const t=topN(isB);return `<div class="card"><h3>${title}</h3><p class="note">Por piezas vendidas. ${isB?'Incluye cerveza, destilados, vino, café y chupe (agrupación pendiente con Mario).':'Sin extras.'}</p>`+
+    hbars(t.map((x,i)=>({n:(i+1)+'. '+x.n,v:x.q,right:num(x.q)+' pzs · '+peso(x.s),extra:peso(x.s)})),num)+`</div>`};
+  h+=tp('tp','Top 10 platillos',false)+tp('tb','Top 10 bebidas',true);
+  h+=`</div>`;
+
+  /* COMPARATIVAS */
+  h+=`<h2>Comparativas</h2><div class="grid">`;
+  const hasB=DATA.branches.includes('B'),hasS=DATA.branches.includes('S');
+  if(hasB){
+    let w0=wk(last);const part=(pd(last)-pd(w0))/864e5+1<4;if(part)w0=addD(w0,-7);const e0=part?addD(w0,6):last,w1=addD(w0,-28),e1=addD(e0,-28);
+    const agg=(a,b)=>{const r=DATA.daily.filter(x=>x.b==='B'&&x.d>=a&&x.d<=b);return{i:sum(r,'ing'),t:sum(r,'rec')}};
+    const A=agg(w0,e0),Bv=agg(w1,e1),dl=(x,y)=>y?`<span class="${x>=y?'pos':'neg'}">${x>=y?'▲':'▼'} ${Math.abs((x/y-1)*100).toFixed(1)}%</span>`:'<span class="pend">sin base</span>';
+    h+=`<div class="card"><h3>Brisas · semana vs. semana equivalente del mes anterior</h3><p class="note">${part?'Última semana completa: ':''}${lbl(w0)}–${lbl(e0)} contra ${lbl(w1)}–${lbl(e1)} (4 semanas atrás, mismos días).</p>`+
+     table(['','Esta semana','Hace 4 sem.','Cambio'],[['Ventas',peso(A.i),peso(Bv.i),dl(A.i,Bv.i)],['Tickets',num(A.t),num(Bv.t),dl(A.t,Bv.t)],['Ticket prom.',peso(A.t?A.i/A.t:0),peso(Bv.t?Bv.i/Bv.t:0),dl(A.t?A.i/A.t:0,Bv.t?Bv.i/Bv.t:0)]])+(Bv.i?'':'<p class="note">Aún no hay 4 semanas de historia: el negocio inició el 1 de agosto.</p>')+`</div>`}
+  if(hasS){
+    const hm=histMap(),ds=DATA.daily.filter(x=>x.b==='S').map(x=>x.d).sort();
+    const lastS=ds[ds.length-1];let w0=wk(lastS);if((pd(lastS)-pd(w0))/864e5<6)w0=addD(w0,-7);const e0=addD(w0,6),[y0,n0]=isoWk(w0);
+    const rS=DATA.daily.filter(x=>x.b==='S'&&x.d>=w0&&x.d<=e0),cur=sum(rS,'ing'),prev=hm['S|'+(y0-1)+'|'+n0];
+    const dl=(x,y)=>y?`<span class="${x>=y?'pos':'neg'}">${x>=y?'▲':'▼'} ${Math.abs((x/y-1)*100).toFixed(1)}%</span>`:'<span class="pend">sin base</span>';
+    const wk4=[1,2,3,4].map(k=>{const a=addD(w0,-7*k);return DATA.daily.filter(x=>x.b==='S'&&x.d>=a&&x.d<=addD(a,6))}),av4=wk4.reduce((s,r)=>s+sum(r,'ing'),0)/4;
+    h+=`<div class="card"><h3>San Miguel · semana vs. misma semana del año pasado</h3><p class="note">Semana ${n0} (${lbl(w0)}–${lbl(e0)}) contra la semana ${n0} de ${y0-1}. Base: ventas semanales de Mario desde 2023.</p>`+
+      table(['','Esta semana','Semana '+n0+' de '+(y0-1),'Cambio'],[['Ventas',peso(cur),prev?peso(prev):'—',dl(cur,prev)],['Promedio 4 semanas previas',peso(av4),'—','']])+`</div>`}
+  {const hm=histMap(),keys=new Set(Object.keys(hm).map(k=>k.split('|').slice(1).join('|')));
+    DATA.daily.forEach(x=>{const [y,n]=isoWk(x.d);keys.add(y+'|'+n)});
+    const ks=[...keys].sort((a,b)=>{const[x1,x2]=a.split('|').map(Number),[y1,y2]=b.split('|').map(Number);return x1-y1||x2-y2});
+    const wkAir=(b,y,n)=>{const r=DATA.daily.filter(x=>x.b===b&&isoWk(x.d).join('|')===y+'|'+n);return r.length===7?sum(r,'ing'):null};
+    const val=(b,k)=>{const[y,n]=k.split('|').map(Number);const a=wkAir(b,y,n);return a!=null?a:(hm[b+'|'+y+'|'+n]??null)};
+    const cfg=[['T','Terraza 2 (2023–24)','var(--s3)'],['S','San Miguel','var(--s2)'],['B','Brisas','var(--s1)']].filter(c=>c[0]==='T'?DATA.branches.includes('S'):DATA.branches.includes(c[0]));
+    const ser=cfg.map(c=>({n:c[1],c:c[2],v:ks.map(k=>{const v=val(c[0],k);return c[0]==='T'&&v!=null&&v<3000?null:v})})).filter(s=>s.v.some(v=>v!=null));
+    const xl=ks.map(k=>{const[y,n]=k.split('|');return n==='1'||n==='27'?y.slice(2)+'·'+n:''});
+    const hTab=table(['Año · semana',...ser.map(s=>s.n)],ks.map((k,i)=>[k.replace('|',' · S'),...ser.map(s=>s.v[i]==null?'—':peso(s.v[i]))]).reverse());
+    h+=`<div style="grid-column:1/-1">`+card('hist','Histórico semanal desde 2023','Venta por semana ISO y sucursal. Hasta agosto 2026 viene de la base semanal de Mario; después, del sistema (semanas completas).',lineChart(ks.map((k,i)=>{const[y,n]=k.split('|');return n==='1'?y:''}),ser,{aria:'Histórico semanal',h:260,all:true}),hTab,legend(ser.map(s=>[s.n,s.c])))+`</div>`}
+  h+=`</div>`;
+
+  /* GASTOS Y SEGUIMIENTO */
+  h+=`<h2>Gastos y seguimiento</h2>`;
+  {const gs=sel(DATA.gastos),pg=gs.filter(x=>x.pr),inP=pg.filter(x=>['Insumos','Nómina','Servicios','Operativos','Comisiones'].includes(x.bk)),out=pg.filter(x=>!['Insumos','Nómina','Servicios','Operativos','Comisiones'].includes(x.bk)),sc=gs.filter(x=>x.bk==='Sin clasificar'),sm=a=>a.reduce((s,x)=>s+x.t,0);
+    if(FULL&&(pg.length||sc.length))h+=`<div class="banner"><b>Movimientos bancarios por aclarar en este periodo: ${peso(sm(pg)+sm(sc))}.</b><br>• <b>${peso(sm(inP))}</b> (${inP.length}) entran al P&amp;L con <b>clasificación propuesta</b>, aprendida de lo que Mario marcó en agosto; falta su validación.<br>• <b>${peso(sm(out))}</b> (${out.length}) quedan fuera del P&amp;L: no son de Funky Panda, son préstamos o traspasos entre cuentas.<br>• <b>${peso(sm(sc))}</b> (${sc.length}) siguen <b>sin clasificar</b> y no cuentan en el P&amp;L.</div>`}
+  const rows=[];
+  const dif=(p,r)=>`<span class="${r<=p?'pos':'neg'}">${peso(r-p)}</span>`;
+  const brsU=st.br==='ALL'?DATA.branches:[st.br];
+  const fijosPlan=P.fijos;
+  rows.push(['Fijo · Renta, servicios, publicidad',peso(fijosPlan),FULL?peso(P.serv):'—',FULL?dif(fijosPlan,P.serv):'—']);
+  rows.push(['Fijo · Nómina (base semanal)',peso(P.nom),peso(P.nomR),'<span class="pend">captura incompleta</span>']);
+  rows.push(['Variable · Insumos','—',peso(P.ins),'']);
+  rows.push(['Variable · Gastos operativos','—',peso(P.op),'']);
+  rows.push(['Variable · Comisiones bancarias (4% de pagos con tarjeta)',peso(P.com),peso(P.comR),'<span class="pend">real incompleto</span>']);
+  rows.push(['Impuestos (10% de ventas declaradas)',peso(P.imp),'<span class="pend">sin captura</span>','']);
+  const gt=`<div class="card"><h3>Plan vs. real</h3><p class="note">Plan = costos fijos mensuales prorrateados a ${P.dias} días. Real = lo registrado en caja chica y bancos${FULL?'. Servicios reales se comparan contra el plan de fijos.':'.'}</p>`+table(['Concepto','Plan','Real','Diferencia'],rows)+`</div>`;
+  // composicion de gastos
+  const gr=[['Insumos',P.ins],['Nómina (real)',P.nomR],['Gastos operativos',P.op+(FULL?0:0)],['Servicios',P.serv],['Comisiones',P.comR]].filter(r=>r[1]>0);
+  const gtot=gr.reduce((s,r)=>s+r[1],0);
+  const gcard=`<div class="card"><h3>Gasto real por categoría</h3><p class="note">${FULL?'Sin Construcción, Préstamos ni movimientos sin clasificar.':'Solo categorías generales.'}</p>${hbars(gr.map(r=>({n:r[0],v:r[1],right:peso(r[1])+' · '+pct(r[1],gtot)})),peso)}</div>`;
+  h+=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">${gt}${gcard}`;
+  // plan vs real diario
+  const days=[...new Set(sel(DATA.daily).map(x=>x.d))].sort();
+  const planDia=(P.fijos+P.nom)/Math.max(1,P.dias);
+  const realD=days.map(d=>sel(DATA.gastos).filter(x=>x.d===d&&['Servicios','Operativos','Comisiones'].includes(x.bk)).reduce((s,x)=>s+x.t,0));
+  const pvTab=table(['Día','Plan (fijos+nómina)','Real (servicios, operativos, comisiones)'],days.map((d,i)=>[lbl(d),peso(planDia),peso(realD[i])]));
+  h+=`<div style="grid-column:1/-1">`+card('pv','Plan vs. real por día','Barras = gasto real registrado ese día · línea punteada = plan diario de fijos + nómina.',barChart(days.map(lbl),[{n:'Real',c:'var(--s2)',v:realD}],{h:220,line:{c:'var(--s1)',v:days.map(()=>planDia)},aria:'Plan vs real por día'}),pvTab,legend([['Real registrado','var(--s2)'],['Plan diario','var(--s1)']]))+`</div>`;
+  h+=`</div>`;
+  if(FULL){
+    h+=`<div class="card" style="margin-top:12px"><h3>Costos fijos mensuales (plan)</h3><p class="note">Nómina va aparte (base semanal de activos + eventuales).</p><div class="grid">${brsU.map(b=>`<div><b>${BN[b]}</b>`+table(['Concepto','Mensual'],Object.entries(DATA.fijos[b]).map(([k,v])=>[k,peso(v)]),['Total',peso(Object.values(DATA.fijos[b]).reduce((a,c)=>a+c,0))])+`<p class="note">Nómina base: ${peso(DATA.nomina[b])} por semana.</p></div>`).join('')}</div></div>`}
+
+  /* CIERRE SEMANAL */
+  if(FULL){
+    h+=`<h2>Cierre semanal</h2>`;
+    if(!hasB)h+=`<div class="card"><p class="note">El cierre semanal de San Miguel se arma cuando Mario entregue su control de esa sucursal.</p></div>`;
+    else{
+      const wsAll=[...new Set(DATA.daily.filter(x=>x.b==='B').map(x=>wk(x.d)))].sort().filter(w=>DATA.daily.filter(x=>x.b==='B'&&x.d>=w&&x.d<=addD(w,6)).length===7);
+      const wsL=wsAll.slice(-8).reverse();
+      if(!st.cw||!wsL.includes(st.cw))st.cw=wsL[0];
+      const w=st.cw,e=addD(w,6),R=DATA.daily.filter(x=>x.b==='B'&&x.d>=w&&x.d<=e),ct=(DATA.control.B||{})[w];
+      const gw=DATA.gastos.filter(x=>x.b==='B'&&x.d>=w&&x.d<=e),gb=k=>gw.filter(x=>x.bk===k).reduce((s,x)=>s+x.t,0);
+      const ventas=sum(R,'ing'),tj=sum(R,'tj')+sum(R,'ub')+sum(R,'rp')+sum(R,'mp')+sum(R,'pw')+sum(R,'cl'),ef=sum(R,'ef'),prop=sum(R,'prop'),com=0.04*tj,nom=DATA.nomina.B;
+      const haveG=gw.length>0,ins=gb('Insumos')+gb('Operativos');
+      const sel_=`<div class="seg" style="margin-bottom:10px" role="group" aria-label="Semana">${wsL.map(x=>`<button data-cw="${x}" aria-pressed="${x===w}">${lbl(x)}–${lbl(addD(x,6))}</button>`).join('')}</div>`;
+      const fx=(a,b)=>b==null||a==null?'':(Math.abs(a-b)<1.5?'<span class="pos">✓ cuadra</span>':`<span class="neg">${peso(a-b)}</span>`);
+      const row=(n,dv,cv,src)=>[n,dv==null?'<span class="pend">—</span>':peso(dv),cv==null?'<span class="pend">—</span>':peso(cv),ct?fx(dv,cv):'',src];
+      const insD=haveG?ins:null;
+      const resD=haveG?ventas-nom-com-prop-ins:null;
+      const rows=[
+        row('Ventas (Poster, sin propina)',ventas,ct&&ct.ventas,'Poster → Make → Airtable'),
+        row('Tarjeta (banco, MP, Paywise, Clip, Uber, Rappi)',tj,ct&&ct.tj,'Poster · método de pago'),
+        row('Efectivo',ef,ct&&ct.cash,'Poster · método de pago'),
+        row('Comisión bancaria (4% de tarjeta)',com,ct&&ct.comision,'Modelo de Mario'),
+        row('Propinas',prop,ct&&ct.propinas,'Poster'),
+        row('Nómina (base semanal)',nom,ct&&ct.nomina,'Tabla de nómina de Mario'),
+        row('Insumos + caja chica + gas + gasolina',insD,ct&&ct.insumos,haveG?'Airtable · gastos':'Airtable aún sin captura de esta semana'),
+        row('Apartado de renta',null,ct&&ct.apartado_renta,'Mario (transferencia a cuenta de renta)'),
+        row('<b>Resultado semanal</b>',resD,ct&&ct.resultado,'Ventas − nómina − comisión − propinas − insumos − apartado')];
+      h+=`<div class="card">${sel_}<p class="note">Misma estructura que el control semanal de Mario, Brisas ${lbl(w)}–${lbl(e)}. ${ct?'Esta semana ya tiene el control de Mario: la columna «Dif.» marca dónde cuadra y dónde no.':'Esta semana todavía no está en el control de Mario; se muestra lo calculado por el sistema.'}</p>`+
+        table(['Concepto','Sistema','Control Mario','Dif.','De dónde sale'],rows)+
+        (ct?`<p class="note" style="margin-top:8px">Mario: inicio de semana ${peso(ct.inicio)} · ventas ${peso(ct.ventas)} = total semanal ${peso(ct.inicio+ct.ventas)} · total pagos ${peso(ct.total_pagos)} · <b>disponible ${peso(ct.disponible)}</b>. Su «Insumos» ya incluye caja chica (${peso(ct.caja_chica)}), gas y gasolina (${peso(ct.gas+ct.gasolina)}). Propinas: él descuenta ${peso(ct.propinas)}, Poster reporta ${peso(prop)} (posible neto de comisión; por confirmar).</p>`:'')+`</div>`}
+  }
+
+  /* P&L */
+  h+=`<h2>Estado de resultados (P&amp;L)</h2><div class="card"><div class="note">Periodo: ${P.dias} días con venta. Nómina, fijos, comisiones (4% de pagos con tarjeta) e impuestos (10% de ventas declaradas: 20% del efectivo + Mercado Pago) estimados con el modelo de Mario; insumos y operativos a real. Excluye obra, préstamos y movimientos sin clasificar.</div>`;
+  const ub_=P.ing-P.ins;
+  const pl=[['Ventas',P.ing,1],['(−) Insumos',-P.ins],['Utilidad bruta',ub_,1,1],['(−) Nómina (plan)',-P.nom],['(−) Costos fijos (plan)',-P.fijos],['(−) Comisiones',-P.com],['(−) Gastos operativos',-P.op],['(−) Impuestos (est.)',-P.imp],['Utilidad operativa',util,1,1]];
+  h+=table(['Concepto','Monto','% venta'],pl.map(r=>[r[3]?`<b>${r[0]}</b>`:r[0],r[1]==null?'<span class="pend">pendiente</span>':(r[3]?`<b class="${r[1]>=0?'pos':'neg'}">${peso(r[1])}</b>`:peso(r[1])),r[1]==null?'':(r[3]?pct(r[1],P.ing):pct(Math.abs(r[1]),P.ing))]));
+  h+=`<p class="note" style="margin-top:8px">Memo (fuera del P&amp;L): obra ${peso(P.inv)} · préstamos ${peso(P.pre)} · sin clasificar ${peso(P.sc)}.</p></div>`;
+
+  /* ACTUALIZACION */
+  const gen=new Date(M.generado);
+  h+=`<h2>Actualización y cortes</h2><div class="card"><table><tbody><tr><td>Último corte de ventas</td><td><b>${lbl(last)} ${last.slice(0,4)}</b></td></tr><tr><td>Datos generados</td><td>${gen.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}</td></tr><tr><td>Siguiente actualización</td><td>Diaria, ~22:30 (cierre de Poster)</td></tr><tr><td>Día en curso</td><td>No incluido hasta el cierre${FULL?' (usa «Venta en vivo»)':''}</td></tr></tbody></table></div>`;
+  $('#main').innerHTML=h;
+  $('#cut').innerHTML=`Último corte: <b>${lbl(last)}</b>`;
+  bind();
+}
+function liveCard(){
+  let c=null;try{c=JSON.parse(localStorage.getItem('fp_live')||'null')}catch(e){}
+  const fresh=c&&Date.now()-c.t<30*60e3;
+  return `<div class="card" style="margin-top:12px"><div class="live"><div><h3>Venta en vivo</h3><p class="note" style="margin:0">Hoy hasta ahora. Se actualiza máx. cada 30 min.</p></div>
+   <div id="liveOut">${c?`<b style="font-size:20px">${peso(c.v)}</b> · ${num(c.k)} tickets <span class="note">(${new Date(c.t).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})})</span>`:(LIVE_URL?'':'<span class="pend">Se activa al conectar el webhook</span>')}</div>
+   <button id="liveBtn" ${(!LIVE_URL||fresh)?'disabled':''}>${fresh?'Actualizado hace poco':'Actualizar'}</button></div></div>`}
+async function live(){
+  const b=$('#liveBtn');b.disabled=true;b.textContent='Consultando…';
+  try{const r=await(await fetch(LIVE_URL)).json();const o={t:Date.now(),v:r.ventas??r.v,k:r.tickets??r.k};localStorage.setItem('fp_live',JSON.stringify(o))}catch(e){}
+  render()}
+function bind(){
+  document.querySelectorAll('[data-cw]').forEach(b=>b.onclick=()=>{st.cw=b.dataset.cw;render()});
+  document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{st.gran=b.dataset.g;render()});
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{st.tbl[b.dataset.t]=!st.tbl[b.dataset.t];render()});
+  const lb=$('#liveBtn');if(lb&&LIVE_URL)lb.onclick=live;
+}
+function bar(){
+  const per=[['all','Todo'],...months.map(m=>[m,MESL[+m.slice(5)-1]]),['30d','30 días'],['7d','7 días']];
+  let h='';
+  if(DATA.branches.length>1)h+=`<div class="seg" role="group" aria-label="Sucursal">${[['ALL','Ambas'],['B','Brisas'],['S','San Miguel']].map(a=>`<button data-br="${a[0]}" aria-pressed="${st.br===a[0]}">${a[1]}</button>`).join('')}</div>`;
+  h+=`<div class="seg" role="group" aria-label="Periodo">${per.map(a=>`<button data-p="${a[0]}" aria-pressed="${st.per===a[0]}">${a[1]}</button>`).join('')}</div>`;
+  $('#bar').innerHTML=h;
+  $('#bar').querySelectorAll('[data-br]').forEach(b=>b.onclick=()=>{st.br=b.dataset.br;bar();render()});
+  $('#bar').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{st.per=b.dataset.p;bar();render()});
+}
+$('#ttl').textContent=DATA.title;$('#sub').textContent=DATA.sub;
+$('#foot').innerHTML='Funky Panda · datos de Poster vía Make → Airtable · <span class="pend">Hecho por Somos Enlace IA</span>';
+bar();render();
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,150)});
+</script>
+</body>
+</html>
