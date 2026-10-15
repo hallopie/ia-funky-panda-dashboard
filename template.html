@@ -188,13 +188,14 @@ const isBeb=cid=>M.bebidas.includes(cid);
 function topN(isB){
   const m={};sel(DATA.prods).filter(p=>isBeb(p.cid)===isB&&p.cid!==6).forEach(p=>{const o=m[p.n]||(m[p.n]={n:p.n,q:0,s:0});o.q+=p.q;o.s+=p.s});
   return Object.values(m).sort((a,b)=>b.q-a.q).slice(0,10)}
-function plBlock(){
-  const dias=bucketRange(),brs=st.br==='ALL'?DATA.branches:[st.br];
-  const ing=sum(sel(DATA.daily),'ing'),g=sel(DATA.gastos);
+function plBlock(pr){
+  const S=a=>pr?a.filter(x=>(st.br==='ALL'||x.b===st.br)&&pr(x.d)):sel(a);
+  const dias=pr?[...new Set(S(DATA.daily).map(x=>x.d))].length:bucketRange(),brs=st.br==='ALL'?DATA.branches:[st.br];
+  const ing=sum(S(DATA.daily),'ing'),g=S(DATA.gastos);
   const by=k=>g.filter(x=>x.bk===k).reduce((s,x)=>s+x.t,0);
   const fijos=brs.reduce((s,b)=>s+Object.values(DATA.fijos[b]).reduce((a,c)=>a+c,0),0)/30*dias;
   const nom=brs.reduce((s,b)=>s+DATA.nomina[b],0)/7*dias;
-  return {dias,ing,ins:by('Insumos'),nomR:by('Nómina'),nom,fijos,serv:by('Servicios'),com:0.04*(sum(sel(DATA.daily),'tj')+sum(sel(DATA.daily),'mp')+sum(sel(DATA.daily),'pw')+sum(sel(DATA.daily),'cl')),comR:by('Comisiones'),imp:0.10*(0.2*sum(sel(DATA.daily),'ef')+sum(sel(DATA.daily),'mp')),op:by('Operativos'),inv:by('Inversión'),pre:by('Préstamos'),sc:by('Sin clasificar'),
+  return {sinG:g.filter(x=>['Insumos','Operativos'].includes(x.bk)).length===0,dias,ing,ins:by('Insumos'),nomR:by('Nómina'),nom,fijos,serv:by('Servicios'),com:0.04*(sum(S(DATA.daily),'tj')+sum(S(DATA.daily),'mp')+sum(S(DATA.daily),'pw')+sum(S(DATA.daily),'cl')),comR:by('Comisiones'),imp:0.10*(0.2*sum(S(DATA.daily),'ef')+sum(S(DATA.daily),'mp')),op:by('Operativos'),inv:by('Inversión'),pre:by('Préstamos'),sc:by('Sin clasificar'),
     scN:g.filter(x=>x.bk==='Sin clasificar').length}}
 
 /* ---------- render ---------- */
@@ -343,12 +344,31 @@ function render(){
         (ct?`<p class="note" style="margin-top:8px">Mario: inicio de semana ${peso(ct.inicio)} · ventas ${peso(ct.ventas)} = total semanal ${peso(ct.inicio+ct.ventas)} · total pagos ${peso(ct.total_pagos)} · <b>disponible ${peso(ct.disponible)}</b>. Su «Insumos» ya incluye caja chica (${peso(ct.caja_chica)}), gas y gasolina (${peso(ct.gas+ct.gasolina)}). Propinas: él descuenta ${peso(ct.propinas)}, Poster reporta ${peso(prop)} (posible neto de comisión; por confirmar).</p>`:'')+`</div>`}
   }
 
-  /* P&L */
-  h+=`<h2>Estado de resultados (P&amp;L)</h2><div class="card"><div class="note">Periodo: ${P.dias} días con venta. Nómina, fijos, comisiones (4% de pagos con tarjeta) e impuestos (10% de ventas declaradas: 20% del efectivo + Mercado Pago) estimados con el modelo de Mario; insumos y operativos a real. Excluye obra, préstamos y movimientos sin clasificar.</div>`;
-  const ub_=P.ing-P.ins;
-  const pl=[['Ventas',P.ing,1],['(−) Insumos',-P.ins],['Utilidad bruta',ub_,1,1],['(−) Nómina (plan)',-P.nom],['(−) Costos fijos (plan)',-P.fijos],['(−) Comisiones',-P.com],['(−) Gastos operativos',-P.op],['(−) Impuestos (est.)',-P.imp],['Utilidad operativa',util,1,1]];
-  h+=table(['Concepto','Monto','% venta'],pl.map(r=>[r[3]?`<b>${r[0]}</b>`:r[0],r[1]==null?'<span class="pend">pendiente</span>':(r[3]?`<b class="${r[1]>=0?'pos':'neg'}">${peso(r[1])}</b>`:peso(r[1])),r[1]==null?'':(r[3]?pct(r[1],P.ing):pct(Math.abs(r[1]),P.ing))]));
-  h+=`<p class="note" style="margin-top:8px">Memo (fuera del P&amp;L): obra ${peso(P.inv)} · préstamos ${peso(P.pre)} · sin clasificar ${peso(P.sc)}.</p></div>`;
+  /* P&L: últimos 30 días + últimos 3 meses + objetivo */
+  {
+    const mm=months.slice(-3).reverse();
+    const cols=[{n:'Últimos 30 días',sub:lbl(addD(last,-29))+' – '+lbl(last),P:plBlock(d=>d>addD(last,-30))},
+      ...mm.map(m=>{const Pm=plBlock(d=>d.slice(0,7)===m);return {n:MESL[+m.slice(5)-1],sub:Pm.dias+' días con venta',P:Pm}})];
+    const brs_=st.br==='ALL'?DATA.branches:[st.br];
+    const O=(M.obj||{}),ov=brs_.map(b=>(O.ventas||{})[b]),ovT=ov.every(v=>v!=null)?ov.reduce((s,v)=>s+v,0):null;
+    const oIns=ovT!=null&&O.insumos_pct!=null?ovT*O.insumos_pct:null;
+    const oNom=brs_.reduce((s,b)=>s+DATA.nomina[b],0)/7*30, oFij=brs_.reduce((s,b)=>s+Object.values(DATA.fijos[b]).reduce((a,c)=>a+c,0),0);
+    const oUB=ovT!=null&&oIns!=null?ovT-oIns:null;
+    const oUt=ovT!=null&&O.util_pct!=null?ovT*O.util_pct:null;
+    const ob={v:ovT,ins:oIns,ub:oUB,nom:oNom,fij:oFij,ut:oUt};
+    const ut=P=>P.ing-P.ins-P.nom-P.fijos-P.com-P.imp-P.op;
+    const defs=[['Ventas',P=>P.ing,ob.v,0],['(−) Insumos',P=>-P.ins,ob.ins==null?null:-ob.ins,0],['Utilidad bruta',P=>P.ing-P.ins,ob.ub,1],
+      ['(−) Nómina (plan)',P=>-P.nom,-ob.nom,0],['(−) Costos fijos (plan)',P=>-P.fijos,-ob.fij,0],['(−) Comisiones',P=>-P.com,null,0],['(−) Gastos operativos',P=>-P.op,null,0],['(−) Impuestos (est.)',P=>-P.imp,null,0],
+      ['Utilidad operativa',ut,ob.ut,1]];
+    const cell=(v,P,b)=>{if(v==null)return '<span class="pend">—</span>';const s=b?`<b class="${v>=0?'pos':'neg'}">${peso(v)}</b>`:peso(v);return s+` <span class="note">${P&&P.ing?pct(Math.abs(v),P.ing):''}</span>`};
+    const objRef={ing:ob.v};
+    const sg=new Set(['(−) Insumos','(−) Gastos operativos']);
+    const rowsPL=defs.map(([n,f,o,b])=>[b?`<b>${n}</b>`:n,...cols.map(c=>c.P.sinG&&sg.has(n)?'<span class="pend">sin captura</span>':cell(f(c.P),c.P,b)+(c.P.sinG&&b?'*':'')),o==null?'<span class="pend">por definir</span>':cell(o,{ing:ob.v},b)]);
+    const noObj=ob.v==null?' Las metas de ventas, insumos y utilidad están <b>por definir con Mario</b>; nómina y fijos del objetivo ya salen de su tabla de plan.':'';
+    h+=`<h2>Estado de resultados (P&amp;L)</h2><div class="card"><div class="note">Últimos 30 días (corte ${lbl(last)}) y los tres últimos meses, lado a lado, contra el objetivo mensual. Nómina, fijos, comisiones (4% de pagos con tarjeta) e impuestos (10% de ventas declaradas: 20% del efectivo + Mercado Pago) estimados con el modelo de Mario; insumos y operativos a real. Excluye obra, préstamos y movimientos sin clasificar.${noObj}</div>`+
+      table(['Concepto',...cols.map(c=>`${c.n}<br><span class="note" style="font-weight:400">${c.sub}</span>`),'Objetivo<br><span class="note" style="font-weight:400">mensual</span>'],rowsPL)+
+      `<p class="note" style="margin-top:8px">Memo (últimos 30 días, fuera del P&amp;L): obra ${peso(cols[0].P.inv)} · préstamos ${peso(cols[0].P.pre)} · sin clasificar ${peso(cols[0].P.sc)}. El mes en curso es parcial (solo los días con venta).${cols.some(c=>c.P.sinG)?' <b>*</b> Periodo sin gastos capturados todavía (insumos y operativos): la utilidad se ve más alta de lo real hasta que se carguen.':''}</p></div>`;
+  }
 
   /* ACTUALIZACION */
   const gen=new Date(M.generado);
@@ -392,7 +412,7 @@ function bar(){
   $('#bar').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{st.per=b.dataset.p;bar();render()});
 }
 $('#ttl').textContent=DATA.title;$('#sub').textContent=DATA.sub;
-$('#foot').innerHTML='Funky Panda · datos de Poster vía Make → Airtable · <span class="pend">Hecho por Somos Enlace IA</span>';
+$('#foot').innerHTML='Funky Panda · datos de Poster vía Make → Airtable · <span class="pend">Hecho por Sótano Bajo</span>';
 bar();render();
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,150)});
 </script>

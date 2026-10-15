@@ -184,7 +184,9 @@ def main():
     if os.environ.get('AIRTABLE_TOKEN'): refresh_from_airtable()
     daily, canal, prods, gastos = build()
     last = max(x['d'] for x in daily)
-    meta = dict(generado=dt.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), ultimoCorte=last,
+    # Objetivo mensual (lo define Mario). None = por definir. ventas por sucursal (MXN/mes), insumos_pct y util_pct como fracción de ventas.
+    OBJ = dict(ventas={'B': None, 'S': None}, insumos_pct=None, util_pct=None)
+    meta = dict(obj=OBJ, generado=dt.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), ultimoCorte=last,
                 cat={str(k): v for k, v in CAT.items()}, bebidas=sorted(BEBIDA_IDS),
                 grupo={str(k): v for k, v in GRUPO.items()}, grupos=GRUPOS)
     tpl = open(f'{HERE}/template.html', encoding='utf-8').read()
