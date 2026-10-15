@@ -82,7 +82,7 @@ footer{margin-top:36px;color:var(--muted);font-size:12px}
 <div id="tip"></div>
 <script>
 const DATA=/*__DATA__*/null;
-const LIVE_URL=''; // webhook Make "poster-live" (cache 30 min)
+const LIVE_URL='https://hook.us2.make.com/4hsrxy6t04tbz1z2w20dtapqot7orae8'; // webhook Make "poster-live" (cache 30 min)
 const M=DATA.meta, FULL=DATA.level==='full';
 const $=s=>document.querySelector(s);
 const peso=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Math.round(n||0));
@@ -360,18 +360,27 @@ function render(){
 function liveCard(){
   let c=null;try{c=JSON.parse(localStorage.getItem('fp_live')||'null')}catch(e){}
   const fresh=c&&Date.now()-c.t<30*60e3;
-  return `<div class="card" style="margin-top:12px"><div class="live"><div><h3>Venta en vivo</h3><p class="note" style="margin:0">Hoy hasta ahora. Se actualiza máx. cada 30 min.</p></div>
-   <div id="liveOut">${c?`<b style="font-size:20px">${peso(c.v)}</b> · ${num(c.k)} tickets <span class="note">(${new Date(c.t).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})})</span>`:(LIVE_URL?'':'<span class="pend">Se activa al conectar el webhook</span>')}</div>
-   <button id="liveBtn" ${(!LIVE_URL||fresh)?'disabled':''}>${fresh?'Actualizado hace poco':'Actualizar'}</button></div></div>`}
+  const hasS=Object.keys(DATA.fijos||{}).includes('S');
+  const d=c&&c.lw?(c.v-c.lw)/c.lw*100:null;
+  const body=c?`<b style="font-size:20px">${peso(hasS?c.v:c.br)}</b>${hasS?` · ${num(c.k)} recibos <span class="note">(SMA ${peso(c.sm)} · Brisas ${peso(c.br)})</span>`:''}${d!==null&&hasS?` <span class="note">${d>=0?'▲ +':'▼ '}${d.toFixed(0)}% vs mismo día sem. pasada (día completo)</span>`:''} <span class="note">(${new Date(c.t).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})})</span>`:'<span class="note">Consultando Poster…</span>';
+  return `<div class="card" style="margin-top:12px"><div class="live"><div><h3>Venta en vivo</h3><p class="note" style="margin:0">Hoy hasta ahora, directo de Poster. Se actualiza máx. cada 30 min.</p></div>
+   <div id="liveOut">${body}</div>
+   <button id="liveBtn" ${fresh?'disabled':''}>${fresh?'Actualizado hace poco':'Actualizar'}</button></div></div>`}
+let liveBusy=false;
 async function live(){
-  const b=$('#liveBtn');b.disabled=true;b.textContent='Consultando…';
-  try{const r=await(await fetch(LIVE_URL)).json();const o={t:Date.now(),v:r.ventas??r.v,k:r.tickets??r.k};localStorage.setItem('fp_live',JSON.stringify(o))}catch(e){}
-  render()}
+  if(liveBusy)return;liveBusy=true;
+  const b=$('#liveBtn');if(b){b.disabled=true;b.textContent='Consultando…'}
+  try{const r=await(await fetch(LIVE_URL)).json();const h=r.hoy||{};
+    localStorage.setItem('fp_live',JSON.stringify({t:Date.now(),v:h.total,sm:h.san_miguel,br:h.brisas,k:h.recibos,lw:(r.semana_pasada_mismo_dia||{}).total}))}
+  catch(e){const o=$('#liveOut');if(o)o.innerHTML='<span class="note">No se pudo consultar Poster ahora.</span>'}
+  liveBusy=false;render()}
+setInterval(()=>{if(!FULL||liveBusy||document.hidden)return;let c=null;try{c=JSON.parse(localStorage.getItem('fp_live')||'null')}catch(e){}
+  if(!c||Date.now()-c.t>=30*60e3){const y=window.scrollY;live().then(()=>window.scrollTo(0,y))}},60000);
 function bind(){
   document.querySelectorAll('[data-cw]').forEach(b=>b.onclick=()=>{st.cw=b.dataset.cw;render()});
   document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{st.gran=b.dataset.g;render()});
   document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{st.tbl[b.dataset.t]=!st.tbl[b.dataset.t];render()});
-  const lb=$('#liveBtn');if(lb&&LIVE_URL)lb.onclick=live;
+  const lb=$('#liveBtn');if(lb){lb.onclick=live;if(!lb.disabled&&!liveBusy&&!window._liveAuto){window._liveAuto=1;live()}}
 }
 function bar(){
   const per=[['all','Todo'],...months.map(m=>[m,MESL[+m.slice(5)-1]]),['30d','30 días'],['7d','7 días']];
