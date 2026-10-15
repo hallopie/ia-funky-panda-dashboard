@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caja · Funky Panda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stone:#3A3630; --stone-2:#4A4438; --stone-3:#2C2823; --stone-4:#242019;
+    --gold:#C9A227; --rust:#B5651D; --moss:#5A8577;
+    --parchment:#EDE0C0; --parchment-dim:#B9AC88; --danger:#C0472C;
+    --font-hand:'Kalam', cursive; --font-mono:'Space Mono','Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--stone-4);color:var(--parchment);font-family:var(--font-mono);}
+  body{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;}
+  .card{background:var(--stone);border:1.5px solid rgba(201,162,39,.55);border-radius:14px;padding:28px;max-width:420px;width:100%;box-shadow:0 10px 28px rgba(0,0,0,.5);}
+  h1{font-family:var(--font-hand);color:var(--gold);font-size:28px;margin:0 0 4px;}
+  p.sub{color:var(--parchment-dim);font-size:13px;margin:0 0 22px;}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--parchment-dim);margin:16px 0 6px;}
+  select, input[type=text], input[type=number]{
+    width:100%;padding:11px 12px;border-radius:4px;border:1px solid var(--stone-2);
+    background:var(--stone-4);color:var(--parchment);font-size:15px;font-family:var(--font-mono);
+  }
+  select:focus, input:focus{outline:none;border-color:var(--gold);}
+  .filebox{border:2px dashed var(--stone-2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;position:relative;}
+  .filebox.has-file{border-color:var(--moss);}
+  .filebox input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .filebox .hint{font-size:12px;color:var(--parchment-dim);}
+  #preview{max-width:100%;max-height:220px;border-radius:6px;margin-top:10px;display:none;}
+  button{cursor:pointer;border:none;border-radius:4px;padding:14px 16px;font-size:14px;font-weight:700;
+    width:100%;background:var(--gold);color:#2C2306;text-transform:uppercase;letter-spacing:.04em;
+    font-family:var(--font-mono);margin-top:22px;}
+  button:disabled{opacity:.5;cursor:default;}
+  button:hover:not(:disabled){filter:brightness(1.08);}
+  #msg{font-size:13px;min-height:18px;margin-top:10px;text-align:center;}
+  #msg.ok{color:var(--moss);}
+  #msg.err{color:var(--danger);}
+  .tabs{display:flex;gap:6px;margin:0 0 18px;}
+  .tabs .tab{margin:0;width:auto;flex:1;background:var(--stone-4);color:var(--parchment-dim);border:1px solid var(--stone-2);padding:10px 12px;}
+  .tabs .tab.on{background:var(--gold);color:#2C2306;border-color:var(--gold);}
+  .res{border:1px solid var(--stone-2);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;line-height:1.7;}
+  #cMsg{font-size:13px;min-height:18px;margin-top:10px;text-align:center;}
+  #cMsg.ok{color:var(--moss);} #cMsg.err{color:var(--danger);}
+  .soon{border:2px dashed var(--stone-2);border-radius:8px;padding:28px 16px;text-align:center;color:var(--parchment-dim);font-size:13px;}
+  [hidden]{display:none !important;}
+  .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:14px;text-align:center;margin-top:18px;opacity:.7;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Caja</h1>
+  <div class="tabs">
+    <button type="button" class="tab on" data-tab="compras">Compras</button>
+    <button type="button" class="tab" data-tab="cierre">Cierre</button>
+  </div>
+
+  <div id="tab-cierre" hidden>
+  <p class="sub">Cierre de turno. Borrador: Mario lo valida. Lo que sale de Poster y de compras en efectivo se calcula solo.</p>
+  <form id="formCierre">
+    <label for="c_fecha">Fecha</label>
+    <input type="date" id="c_fecha" required>
+
+    <label for="c_sucursal">Sucursal</label>
+    <select id="c_sucursal" required>
+      <option value="">Selecciona...</option>
+      <option value="San Miguel">San Miguel</option>
+      <option value="Brisas">Brisas</option>
+    </select>
+
+    <label for="c_turno">Turno</label>
+    <select id="c_turno" required>
+      <option value="Tarde">Tarde</option>
+      <option value="Mañana">Mañana</option>
+    </select>
+
+    <label for="c_abre">Abre caja ($ fondo inicial)</label>
+    <input type="number" id="c_abre" step="0.01" min="0" placeholder="0.00" required>
+
+    <label for="c_cash">Efectivo contado al cerrar ($)</label>
+    <input type="number" id="c_cash" step="0.01" min="0" placeholder="0.00" required>
+
+    <label for="c_pcash">Propinas en efectivo ($)</label>
+    <input type="number" id="c_pcash" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_ptj">Propinas en tarjeta ($)</label>
+    <input type="number" id="c_ptj" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_mp">Mercado Pago ($)</label>
+    <input type="number" id="c_mp" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_pw">Paywise ($)</label>
+    <input type="number" id="c_pw" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_rappi">Rappi ($)</label>
+    <input type="number" id="c_rappi" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_uber">Uber ($)</label>
+    <input type="number" id="c_uber" step="0.01" min="0" placeholder="0.00">
+
+    <label for="c_nombre">Tu nombre</label>
+    <input type="text" id="c_nombre" placeholder="¿Quién cierra?" required>
+
+    <label for="c_notas">Notas (opcional)</label>
+    <input type="text" id="c_notas" placeholder="Algo que Mario deba saber">
+
+    <button type="submit" id="cSubmit">Registrar cierre</button>
+    <div id="cMsg"></div>
+    <div id="cRes" class="res" hidden></div>
+  </form>
+  </div>
+
+  <div id="tab-compras">
+  <p class="sub">Compras y producto recibido: hielo, pan, insumos, imprevistos. Foto del ticket y la IA lee los productos.</p>
+
+  <form id="form">
+    <label for="sucursal">Sucursal</label>
+    <select id="sucursal" required>
+      <option value="">Selecciona...</option>
+      <option value="San Miguel">San Miguel</option>
+      <option value="Brisas">Brisas</option>
+    </select>
+
+    <label for="concepto">¿En qué se gastó?</label>
+    <input type="text" id="concepto" placeholder="Ej. Hielo, pan, gas..." required>
+
+    <label for="monto">Monto ($)</label>
+    <input type="number" id="monto" step="0.01" min="0" placeholder="0.00" required>
+
+    <label for="reportado_por">Tu nombre</label>
+    <input type="text" id="reportado_por" placeholder="¿Quién lo reporta?" required>
+
+    <label>Foto del ticket</label>
+    <div class="filebox" id="fileboxWrap">
+      <input type="file" id="foto" accept="image/*" capture="environment" required>
+      <div class="hint" id="fileboxHint">Toca para tomar foto o elegir una imagen</div>
+      <img id="preview">
+    </div>
+
+    <button type="submit" id="submitBtn">Registrar compra</button>
+    <div id="msg"></div>
+  </form>
+  </div>
+  <div class="wordmark">Sótano Bajo · Funky Panda</div>
+</div>
+
+<script>
+const WEBHOOK_URL = "https://hook.us2.make.com/55516lwmo5nrsthl4phf34iacwmwh9rh";
+
+const fotoInput = document.getElementById("foto");
+const preview = document.getElementById("preview");
+const fileboxWrap = document.getElementById("fileboxWrap");
+const fileboxHint = document.getElementById("fileboxHint");
+
+fotoInput.addEventListener("change", () => {
+  const file = fotoInput.files[0];
+  if(!file) return;
+  fileboxWrap.classList.add("has-file");
+  fileboxHint.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { preview.src = e.target.result; preview.style.display = "block"; };
+  reader.readAsDataURL(file);
+});
+
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  document.getElementById("tab-compras").hidden = t.dataset.tab !== "compras";
+  document.getElementById("tab-cierre").hidden = t.dataset.tab !== "cierre";
+}));
+
+
+const CIERRE_URL = "https://hook.us2.make.com/s7lvsdz8ujt2p0t6imkzqcbqy8ukhfg5";
+(function(){
+  const d = new Date(); const pad = n => String(n).padStart(2,"0");
+  document.getElementById("c_fecha").value = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+})();
+const clean = v => String(v||"").replace(/["\\]/g,"'").replace(/[\r\n]+/g," ").trim();
+const num = id => { const v = document.getElementById(id).value; return v === "" ? 0 : Number(v); };
+const peso = n => "$" + Number(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+document.getElementById("formCierre").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("cSubmit"), msg = document.getElementById("cMsg"), res = document.getElementById("cRes");
+  btn.disabled = true; msg.className = ""; msg.textContent = "Enviando..."; res.hidden = true;
+  try{
+    const payload = {
+      fecha: document.getElementById("c_fecha").value,
+      sucursal: document.getElementById("c_sucursal").value,
+      turno: document.getElementById("c_turno").value,
+      abre_caja: num("c_abre"), cash_conteo: num("c_cash"),
+      propinas_cash: num("c_pcash"), propinas_tj: num("c_ptj"),
+      mercado_pago: num("c_mp"), paywise: num("c_pw"), rappi: num("c_rappi"), uber: num("c_uber"),
+      reportado_por: clean(document.getElementById("c_nombre").value),
+      notas: clean(document.getElementById("c_notas").value)
+    };
+    const r = await fetch(CIERRE_URL, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)});
+    if(!r.ok) throw new Error("respuesta " + r.status);
+    const j = await r.json();
+    msg.className = "ok"; msg.textContent = "¡Cierre registrado!";
+    const pend = j.estado === "Pendiente Poster";
+    res.innerHTML = "<b>" + j.estado + "</b><br>Efectivo Poster: " + peso(j.efectivo_poster) +
+      "<br>Salidas de caja (compras): " + peso(j.incidencias) +
+      "<br>Efectivo esperado: " + peso(j.esperado) +
+      (pend ? "<br>Poster aún no carga el día; la diferencia se verá cuando cargue." : "<br>Diferencia: " + peso(j.diferencia));
+    res.hidden = false;
+  } catch(err){
+    msg.className = "err"; msg.textContent = "No se pudo registrar: " + err.message + ". Intenta de nuevo.";
+  } finally { btn.disabled = false; }
+});
+
+function rawBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ b64: reader.result.split(",")[1], mime: file.type || "image/jpeg", name: file.name || "ticket.jpg" });
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+// Reduce la foto a máx. 1600 px y JPEG: pesa menos, entra en Airtable y la IA la lee bien.
+async function fileToBase64(file){
+  try{
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const url = c.toDataURL("image/jpeg", 0.85);
+    return { b64: url.split(",")[1], mime: "image/jpeg", name: (file.name || "ticket").replace(/\.[^.]+$/, "") + ".jpg" };
+  } catch(e){ return rawBase64(file); }
+}
+
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("submitBtn");
+  const msg = document.getElementById("msg");
+  const file = fotoInput.files[0];
+  if(!file){ msg.className = "err"; msg.textContent = "Falta la foto del ticket."; return; }
+
+  btn.disabled = true;
+  msg.className = ""; msg.textContent = "Subiendo...";
+
+  try{
+    const foto = await fileToBase64(file);
+    const payload = {
+      sucursal: document.getElementById("sucursal").value,
+      concepto: document.getElementById("concepto").value,
+      monto: Number(document.getElementById("monto").value),
+      reportado_por: document.getElementById("reportado_por").value,
+      foto_base64: foto.b64,
+      foto_filename: foto.name,
+      foto_mime: foto.mime
+    };
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("respuesta " + res.status);
+    msg.className = "ok";
+    msg.textContent = "¡Listo! Compra registrada.";
+    document.getElementById("form").reset();
+    preview.style.display = "none";
+    fileboxWrap.classList.remove("has-file");
+    fileboxHint.textContent = "Toca para tomar foto o elegir una imagen";
+  } catch(err){
+    msg.className = "err";
+    msg.textContent = "No se pudo registrar: " + err.message + ". Intenta de nuevo.";
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
