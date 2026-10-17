@@ -47,6 +47,7 @@
   .soon{border:2px dashed var(--stone-2);border-radius:8px;padding:28px 16px;text-align:center;color:var(--parchment-dim);font-size:13px;}
   [hidden]{display:none !important;}
   .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:14px;text-align:center;margin-top:18px;opacity:.7;}
+.dens{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.den{display:flex;align-items:center;gap:8px}.den span{flex:1;font-size:13px}.den input{width:70px;margin:0}.total{margin:10px 0 14px;font-weight:700;color:#c9a24b}
 </style>
 </head>
 <body>
@@ -58,7 +59,7 @@
   </div>
 
   <div id="tab-cierre" hidden>
-  <p class="sub">Cierre de turno. Borrador: Mario lo valida. Lo que sale de Poster y de compras en efectivo se calcula solo.</p>
+  <p class="sub">Cierre de turno. Borrador: Mario lo valida. Abre caja, ventas de Poster y compras en efectivo se calculan solos. Solo cuenta el efectivo.</p>
   <form id="formCierre">
     <label for="c_fecha">Fecha</label>
     <input type="date" id="c_fecha" required>
@@ -76,29 +77,33 @@
       <option value="Mañana">Mañana</option>
     </select>
 
-    <label for="c_abre">Abre caja ($ fondo inicial)</label>
-    <input type="number" id="c_abre" step="0.01" min="0" placeholder="0.00" required>
+    <label>Cuenta el efectivo (cantidad de cada uno)</label>
+    <div class="dens">
+      <div class="den"><span>Billete $1000</span><input type="number" inputmode="numeric" min="0" step="1" data-v="1000" id="d_b1000" placeholder="0"></div>
+      <div class="den"><span>Billete $500</span><input type="number" inputmode="numeric" min="0" step="1" data-v="500" id="d_b500" placeholder="0"></div>
+      <div class="den"><span>Billete $200</span><input type="number" inputmode="numeric" min="0" step="1" data-v="200" id="d_b200" placeholder="0"></div>
+      <div class="den"><span>Billete $100</span><input type="number" inputmode="numeric" min="0" step="1" data-v="100" id="d_b100" placeholder="0"></div>
+      <div class="den"><span>Billete $50</span><input type="number" inputmode="numeric" min="0" step="1" data-v="50" id="d_b50" placeholder="0"></div>
+      <div class="den"><span>Billete $20</span><input type="number" inputmode="numeric" min="0" step="1" data-v="20" id="d_b20" placeholder="0"></div>
+      <div class="den"><span>Moneda $10</span><input type="number" inputmode="numeric" min="0" step="1" data-v="10" id="d_m10" placeholder="0"></div>
+      <div class="den"><span>Moneda $5</span><input type="number" inputmode="numeric" min="0" step="1" data-v="5" id="d_m5" placeholder="0"></div>
+      <div class="den"><span>Moneda $2</span><input type="number" inputmode="numeric" min="0" step="1" data-v="2" id="d_m2" placeholder="0"></div>
+      <div class="den"><span>Moneda $1</span><input type="number" inputmode="numeric" min="0" step="1" data-v="1" id="d_m1" placeholder="0"></div>
+      <div class="den"><span>Moneda $0.50</span><input type="number" inputmode="numeric" min="0" step="1" data-v="0.5" id="d_m05" placeholder="0"></div>
+    </div>
+    <div class="total" id="c_total">Cierre Caja (contado): $0.00</div>
 
-    <label for="c_cash">Efectivo contado al cerrar ($)</label>
-    <input type="number" id="c_cash" step="0.01" min="0" placeholder="0.00" required>
+    <label for="c_final">Cierre de caja final (queda en caja para mañana)</label>
+    <input type="number" id="c_final" step="0.01" min="0" value="2000">
+
+    <label for="c_otras">Otras salidas de efectivo ($, opcional)</label>
+    <input type="number" id="c_otras" step="0.01" min="0" placeholder="0.00">
 
     <label for="c_pcash">Propinas en efectivo ($)</label>
     <input type="number" id="c_pcash" step="0.01" min="0" placeholder="0.00">
 
     <label for="c_ptj">Propinas en tarjeta ($)</label>
     <input type="number" id="c_ptj" step="0.01" min="0" placeholder="0.00">
-
-    <label for="c_mp">Mercado Pago ($)</label>
-    <input type="number" id="c_mp" step="0.01" min="0" placeholder="0.00">
-
-    <label for="c_pw">Paywise ($)</label>
-    <input type="number" id="c_pw" step="0.01" min="0" placeholder="0.00">
-
-    <label for="c_rappi">Rappi ($)</label>
-    <input type="number" id="c_rappi" step="0.01" min="0" placeholder="0.00">
-
-    <label for="c_uber">Uber ($)</label>
-    <input type="number" id="c_uber" step="0.01" min="0" placeholder="0.00">
 
     <label for="c_nombre">Tu nombre</label>
     <input type="text" id="c_nombre" placeholder="¿Quién cierra?" required>
@@ -176,6 +181,9 @@ const CIERRE_URL = "https://hook.us2.make.com/s7lvsdz8ujt2p0t6imkzqcbqy8ukhfg5";
   const d = new Date(); const pad = n => String(n).padStart(2,"0");
   document.getElementById("c_fecha").value = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 })();
+const dens=[...document.querySelectorAll(".den input")];
+const conteo=()=>dens.reduce((t,i)=>t+(Number(i.value)||0)*Number(i.dataset.v),0);
+dens.forEach(i=>i.addEventListener("input",()=>{document.getElementById("c_total").textContent="Cierre Caja (contado): "+peso(conteo());}));
 const clean = v => String(v||"").replace(/["\\]/g,"'").replace(/[\r\n]+/g," ").trim();
 const num = id => { const v = document.getElementById(id).value; return v === "" ? 0 : Number(v); };
 const peso = n => "$" + Number(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -188,9 +196,9 @@ document.getElementById("formCierre").addEventListener("submit", async (e) => {
       fecha: document.getElementById("c_fecha").value,
       sucursal: document.getElementById("c_sucursal").value,
       turno: document.getElementById("c_turno").value,
-      abre_caja: num("c_abre"), cash_conteo: num("c_cash"),
-      propinas_cash: num("c_pcash"), propinas_tj: num("c_ptj"),
-      mercado_pago: num("c_mp"), paywise: num("c_pw"), rappi: num("c_rappi"), uber: num("c_uber"),
+      cierre_caja: conteo(), cierre_final: document.getElementById("c_final").value===""?2000:num("c_final"),
+      otras_salidas: num("c_otras"), propinas_cash: num("c_pcash"), propinas_tj: num("c_ptj"),
+      detalle_conteo: dens.filter(i=>Number(i.value)>0).map(i=>i.value+" x $"+i.dataset.v).join(", "),
       reportado_por: clean(document.getElementById("c_nombre").value),
       notas: clean(document.getElementById("c_notas").value)
     };
@@ -199,15 +207,20 @@ document.getElementById("formCierre").addEventListener("submit", async (e) => {
     const j = await r.json();
     msg.className = "ok"; msg.textContent = "¡Cierre registrado!";
     const pend = j.estado === "Pendiente Poster";
-    res.innerHTML = "<b>" + j.estado + "</b><br>Efectivo Poster: " + peso(j.efectivo_poster) +
-      "<br>Salidas de caja (compras): " + peso(j.incidencias) +
-      "<br>Efectivo esperado: " + peso(j.esperado) +
-      (pend ? "<br>Poster aún no carga el día; la diferencia se verá cuando cargue." : "<br>Diferencia: " + peso(j.diferencia));
+    res.innerHTML = "<b>" + j.estado + "</b><br>Abre caja: " + peso(j.abre) +
+      "<br>Efectivo Poster: " + peso(j.efectivo_poster) +
+      "<br>Salidas de caja: " + peso(j.incidencias) +
+      "<br>Comprobación: " + peso(j.comprobacion) +
+      (pend ? "<br>Poster aún no carga el día; la diferencia se verá cuando cargue." : "<br>Diferencia: " + peso(j.diferencia)) +
+      "<br>Sube a fondo: " + peso(j.sube_a_fondo) +
+      "<br>Propinas a pagar: " + peso(j.propinas_a_pagar);
     res.hidden = false;
   } catch(err){
     msg.className = "err"; msg.textContent = "No se pudo registrar: " + err.message + ". Intenta de nuevo.";
   } finally { btn.disabled = false; }
 });
+
+if(location.hash==="#cierre"){ const t=document.querySelector('[data-tab=cierre]'); if(t) t.click(); }
 
 function rawBase64(file){
   return new Promise((resolve, reject) => {

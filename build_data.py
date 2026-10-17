@@ -9,7 +9,7 @@ import clasif
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, 'raw')
 BASE = 'appvDywRWEiRY5oPP'
-TABLES = {'ventas': 'tblHw4y5D5GGuneVi', 'canal': 'tblCuKQAOfbRWniWb', 'gastos': 'tblZB1hjuPZigOIYB'}
+TABLES = {'ventas': 'tblHw4y5D5GGuneVi', 'canal': 'tblCuKQAOfbRWniWb', 'gastos': 'tblZB1hjuPZigOIYB', 'cierres': 'tblW7aO1M5uSZwxUy'}
 
 def refresh_from_airtable():
     import urllib.request
@@ -104,7 +104,20 @@ def build():
             if c['fp'] != 'Revisar' and c['conf'] in ('alta', 'media') and c['bucket'] != 'Sin clasificar':
                 x['pr'] = 1
     gastos.sort(key=lambda x: x['d'])
-    return daily, canal, prods, gastos
+    cierres = []
+    if os.path.exists(f'{RAW}/cierres.json'):
+        for r in recs(f'{RAW}/cierres.json'):
+            c = r['cellValuesByFieldId']
+            if not c.get('fldPRSt2wSbo4HM5Z'): continue
+            su = c.get('fld0GcRQtg9zOEO5a') or []
+            sid = (su[0]['id'] if isinstance(su[0], dict) else su[0]) if su else None
+            e = c.get('fld5gFwF3FrLinhnS'); e = e['name'] if isinstance(e, dict) else (e or '')
+            g_ = lambda k: round(c.get(k) or 0, 2)
+            cierres.append(dict(d=c['fldPRSt2wSbo4HM5Z'], b=B.get(sid, 'B'), ab=g_('fld0hvNZLEQlLXgBL'), inc=g_('fldOuOsbhsipTDqrH'), ci=g_('fldjjcZj2pCVE58Oz'),
+                ef=g_('fldueAhhq3yhiqJtF'), dif=g_('fldYWqTWAAcxkr06G'), tj=g_('fld8gTMXpScjtPksI'), ub=g_('fldZZiDcZYtgawdNZ'), pc=g_('fldkO6YeQ7wSUGcu6'),
+                ptj=g_('fldqvFcdx9QHhJ4Iu'), est=e, sube=g_('fldSZmP3bAC7vUN5V'), pag=g_('fld3bCgltS1yVqEQu')))
+        cierres.sort(key=lambda x: (x['d'], x['b']))
+    return daily, canal, prods, gastos, cierres
 
 FIJOS = {  # tabla de Mario (13 oct 2026), mensual, sin nómina
  'B': {'Renta': 20000, 'Gas': 4500, 'Luz': 4000, 'Internet': 949, 'Agua': 1000, 'Agencia RDSS': 5500, 'Pauta RDSS': 2000,
@@ -119,6 +132,20 @@ CONTROL = {'B': {'2026-10-05': dict(inicio=50062.29, ventas=54742.60, tj=46840.6
     total_pagos=62084.55, disponible=42720.34, resultado=-7341.95)}}
 SOCIOS_GRUPO = {'Nómina': 'Nómina', 'Insumo Directo': 'Insumos', 'Insumo Indirecto': 'Insumos'}
 
+# Metas SEMANALES de caja chica (hoja 'Caja 2026' de Mario). Clasificación propuesta por proveedor/concepto: Mario la valida.
+METAS = [('Gastos caja chica', 500), ('Gas', 1000), ('Gasolina', 500), ('Verduras y Abarrotes', 4500), ('Carne', 2300), ('Mariscos', 2500),
+         ('Toyo', 1600), ('Mimi', 500), ('Costco', 1800), ('Refrescos', 1000), ('Alcohol', 2500), ('Otros', 0)]
+def metacat(x):
+    if x['o'] != 'Efectivo': return None
+    t = (x['k'] + ' ' + x['con'] + ' ' + x['cat']).upper()
+    if 'CASH OUT' in t: return None
+    for pat, m in [(r'GASOLINA', 'Gasolina'), (r'\bGAS\b', 'Gas'), (r'CARNIC|CARNE|POLLO', 'Carne'), (r'MARISCO', 'Mariscos'), (r'TOYO', 'Toyo'),
+                   (r'MIMI', 'Mimi'), (r'COSTCO', 'Costco'), (r'COCA|REFRESC|SIDRAL|JUMEX', 'Refrescos'), (r'CHUPE|CHELA|\bRON\b|ALCOHOL|TEQUILA|VINO', 'Alcohol'),
+                   (r'FRESCO|RECAUDER|VERDUR|FRUTA|BODEGA|TORTILL|CARMELO|PAN[AE]DER|PASTELER|ABARROT|WALMART|LA COMER', 'Verduras y Abarrotes'),
+                   (r'OXXO|PAPELER|FERRETER|BASURA|AGUA|HIELO|\bCP\b|TIENDA|PROPINA|DANY|POSTRES', 'Gastos caja chica')]:
+        if re.search(pat, t): return m
+    return 'Otros'
+
 def bucket(x):
     if x.get('pr'): return x['cl']['bucket']
     if re.search(r'comisi', x['con'] + ' ' + x['sub'], re.I): return 'Comisiones'
@@ -131,17 +158,18 @@ def bucket(x):
     if c == 'Préstamos': return 'Préstamos'
     return 'Operativos'
 
-def view(daily, canal, prods, gastos, branches, level):
+def view(daily, canal, prods, gastos, cierres, branches, level):
     f = lambda xs: [x for x in xs if x['b'] in branches]
     g = f(gastos)
     out = dict(daily=f(daily), canal=f(canal), prods=f(prods), branches=branches,
                fijos={b: FIJOS[b] for b in branches}, nomina={b: NOMINA_SEM[b] for b in branches}, level=level, hist=[h for h in load_hist() if h['b'] in branches or (h['b'] == 'T' and 'S' in branches)],
+               cierres=[x for x in cierres if x['b'] in branches] if level == 'full' else [], metas=METAS,
                control={b: CONTROL.get(b, {}) for b in branches} if level == 'full' else {})
     if level == 'socios':
         out['gastos'] = [dict(d=x['d'], b=x['b'], bk=bucket(x), pr=x.get('pr', 0), t=x['t']) for x in g]
         out['fijos'] = {b: {'Gastos operativos fijos': sum(FIJOS[b].values())} for b in branches}
     else:
-        out['gastos'] = [dict(d=x['d'], b=x['b'], o=x['o'], k=x['k'], cat=x['cat'], sub=x['sub'], con=x['con'], bk=bucket(x), pr=x.get('pr', 0), fp=(x['cl']['fp'] if x.get('pr') else ''), t=x['t']) for x in g]
+        out['gastos'] = [dict(d=x['d'], b=x['b'], o=x['o'], k=x['k'], cat=x['cat'], sub=x['sub'], con=x['con'], bk=bucket(x), mc=metacat(x), pr=x.get('pr', 0), fp=(x['cl']['fp'] if x.get('pr') else ''), t=x['t']) for x in g]
     return out
 
 def encrypt_html(html, password):
@@ -182,7 +210,7 @@ def load_hist():
 
 def main():
     if os.environ.get('AIRTABLE_TOKEN'): refresh_from_airtable()
-    daily, canal, prods, gastos = build()
+    daily, canal, prods, gastos, cierres = build()
     last = max(x['d'] for x in daily)
     # Objetivo mensual (lo define Mario). None = por definir. ventas por sucursal (MXN/mes), insumos_pct y util_pct como fracción de ventas.
     OBJ = dict(ventas={'B': None, 'S': None}, insumos_pct=None, util_pct=None)
@@ -197,7 +225,7 @@ def main():
     falta = [n for n, *_ in specs if n not in pws]
     if falta: raise SystemExit('Faltan contraseñas (PW_MARIO / PW_BRISAS / PW_SOCIOS): ' + ', '.join(falta) + '. No se publica nada sin cifrar.')
     for name, br, lvl, title, sub in specs:
-        data = view(daily, canal, prods, gastos, br, lvl)
+        data = view(daily, canal, prods, gastos, cierres, br, lvl)
         data['meta'] = meta; data['title'] = title; data['sub'] = sub
         html = tpl.replace('/*__DATA__*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':'))).replace('__TITLE__', title)
         blobs[name] = encrypt_html(html, pws[name])

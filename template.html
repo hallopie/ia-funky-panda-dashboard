@@ -371,6 +371,30 @@ function render(){
   }
 
   /* ACTUALIZACION */
+
+  /* CAJA (cierres de caja + gasto vs meta) */
+  if(FULL&&(DATA.cierres||[]).length){
+    const CI=DATA.cierres.filter(x=>st.br==='ALL'||x.b===st.br);
+    const wsC=[...new Set(CI.map(x=>wk(x.d)))].sort().reverse();
+    if(wsC.length){
+      if(!st.cx||!wsC.includes(st.cx))st.cx=wsC[0];
+      const rows=wsC.slice(0,8).map(w=>{const R=CI.filter(x=>wk(x.d)===w);const ef=sum(R,'ef'),tj=sum(R,'tj'),ub=sum(R,'ub');
+        return [lbl(w)+'–'+lbl(addD(w,6)),R.length+'/7',peso(ef),peso(tj),peso(ub),`<b>${peso(ef+tj+ub)}</b>`,peso(sum(R,'inc')),peso(sum(R,'sube')),
+          `<span class="${Math.abs(sum(R,'dif'))<1.5?'pos':'neg'}">${peso(sum(R,'dif'))}</span>`,peso(sum(R,'pc')*0.95+sum(R,'ptj')*0.91)]});
+      h+=`<h2>Caja · totales semanales</h2><div class="card"><p class="note">Del cierre de caja del turno tarde (misma fórmula de Mario): ventas = efectivo + tarjeta + Uber; sube a fondo = cierre − 2,000; propinas a pagar = efectivo×0.95 + tarjeta×0.91.</p>`+
+        `<div style="overflow-x:auto">`+table(['Semana','Cierres','Efectivo','Tarjeta','Uber','Total ventas','Incidencias','Sube a fondo','Diferencia','Propinas a pagar'],rows)+`</div></div>`;
+      const w=st.cx,e=addD(w,6),R=CI.filter(x=>x.d>=w&&x.d<=e);
+      const selx=`<div class="seg" style="margin-bottom:10px" role="group" aria-label="Semana caja">${wsC.slice(0,8).map(x=>`<button data-cx="${x}" aria-pressed="${x===w}">${lbl(x)}–${lbl(addD(x,6))}</button>`).join('')}</div>`;
+      const dr=R.map(x=>[lbl(x.d),peso(x.ab),peso(x.inc),peso(x.ci),peso(x.ef),`<span class="${x.est==='Cuadra'?'pos':'neg'}">${x.dif?peso(x.dif):'✓ cuadra'}</span>`,peso(x.sube),peso(x.pc*0.95+x.ptj*0.91)]);
+      h+=`<div class="card" style="margin-top:12px"><h3>Cierre diario</h3>${selx}<div style="overflow-x:auto">`+table(['Día','Abre caja','Incidencias','Cierre caja','Efectivo Poster','Diferencia','Sube a fondo','Propinas a pagar'],dr)+`</div></div>`;
+      const GG=DATA.gastos.filter(x=>x.mc&&(st.br==='ALL'||x.b===st.br)&&x.d>=w&&x.d<=e);
+      const mrows=DATA.metas.map(([n,m])=>{const v=GG.filter(x=>x.mc===n).reduce((a,x)=>a+x.t,0);
+        return [n,peso(m),peso(v),m?`<span class="${v>m?'neg':'pos'}">${v>m?'+':''}${peso(v-m)}</span>`:(v?'<span class="neg">+'+peso(v)+'</span>':'—')]});
+      const tm=DATA.metas.reduce((a,x)=>a+x[1],0),tv=GG.reduce((a,x)=>a+x.t,0);
+      mrows.push([`<b>Total</b>`,`<b>${peso(tm)}</b>`,`<b>${peso(tv)}</b>`,`<b class="${tv>tm?'neg':'pos'}">${peso(tv-tm)}</b>`]);
+      h+=`<div class="card" style="margin-top:12px"><h3>Gasto de caja chica vs. meta semanal</h3><p class="note">Solo gastos pagados en efectivo, semana ${lbl(w)}–${lbl(e)}. Metas semanales de Mario. La asignación de cada gasto a su categoría es propuesta y Mario la confirma.</p>`+table(['Categoría','Meta','Gastado','Diferencia'],mrows)+`</div>`;
+    }
+  }
   const gen=new Date(M.generado);
   h+=`<h2>Actualización y cortes</h2><div class="card"><table><tbody><tr><td>Último corte de ventas</td><td><b>${lbl(last)} ${last.slice(0,4)}</b></td></tr><tr><td>Datos generados</td><td>${gen.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}</td></tr><tr><td>Siguiente actualización</td><td>Diaria, ~22:30 (cierre de Poster)</td></tr><tr><td>Día en curso</td><td>No incluido hasta el cierre${FULL?' (usa «Venta en vivo»)':''}</td></tr></tbody></table></div>`;
   $('#main').innerHTML=h;
@@ -397,6 +421,7 @@ async function live(){
 setInterval(()=>{if(!FULL||liveBusy||document.hidden)return;let c=null;try{c=JSON.parse(localStorage.getItem('fp_live')||'null')}catch(e){}
   if(!c||Date.now()-c.t>=30*60e3){const y=window.scrollY;live().then(()=>window.scrollTo(0,y))}},60000);
 function bind(){
+  document.querySelectorAll('[data-cx]').forEach(b=>b.onclick=()=>{st.cx=b.dataset.cx;render()});
   document.querySelectorAll('[data-cw]').forEach(b=>b.onclick=()=>{st.cw=b.dataset.cw;render()});
   document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{st.gran=b.dataset.g;render()});
   document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{st.tbl[b.dataset.t]=!st.tbl[b.dataset.t];render()});
