@@ -11,6 +11,7 @@ RAW = os.path.join(HERE, 'raw')
 BASE = 'appvDywRWEiRY5oPP'
 TABLES = {'ventas': 'tblHw4y5D5GGuneVi', 'canal': 'tblCuKQAOfbRWniWb', 'gastos': 'tblZB1hjuPZigOIYB', 'cierres': 'tblW7aO1M5uSZwxUy'}
 
+HUELLA = []                  # resumen sin datos (modo, llamadas, huella por dashboard) -> huella.txt
 INCR = ('canal', 'gastos')   # tablas grandes: solo se bajan los registros nuevos/editados y se juntan con la copia guardada (raw.enc)
 FULL_DAYS = 7                 # cada 7 días se baja todo completo (atrapa borrados y campos calculados)
 
@@ -66,6 +67,7 @@ def refresh_from_airtable():
     cache['fetched_at'] = now.isoformat()
     open(f'{HERE}/raw.enc', 'w').write(encrypt_html(json.dumps(cache, separators=(',', ':')), get_passwords()['mario']))
     print('Airtable:', 'COMPLETO' if full else 'incremental', '-', total, 'llamadas')
+    HUELLA.append(f"{now:%Y-%m-%d %H:%M}Z {'COMPLETO' if full else 'incremental'} {total} llamadas")
 
 def recs(f):
     d = json.load(open(f))
@@ -262,11 +264,12 @@ def main():
     for name, br, lvl, title, sub in specs:
         data = view(daily, canal, prods, gastos, cierres, br, lvl)
         data['meta'] = meta; data['title'] = title; data['sub'] = sub
-        import hashlib; print(name, 'huella', hashlib.sha256(json.dumps({k: v for k, v in data.items() if k != 'meta'}, sort_keys=True).encode()).hexdigest()[:16])
+        import hashlib; h_ = hashlib.sha256(json.dumps({k: v for k, v in data.items() if k != 'meta'}, sort_keys=True).encode()).hexdigest()[:16]; print(name, 'huella', h_); HUELLA.append(f'{name} {h_}')
         html = tpl.replace('/*__DATA__*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':'))).replace('__TITLE__', title)
         blobs[name] = encrypt_html(html, pws[name])
         print(name, len(html) // 1024, 'KB', 'daily', len(data['daily']), 'prods', len(data['prods']), 'gastos', len(data['gastos']))
     _write_index(blobs)
+    open(f'{HERE}/huella.txt', 'w').write('\n'.join(HUELLA) + '\n')
 
 def _write_index(blobs):
     if not blobs: return
