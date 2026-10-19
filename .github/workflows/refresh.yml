@@ -1,12 +1,13 @@
 name: refresh-dashboards
 on:
   schedule:
-    - cron: '30 12 * * *'   # 06:30 CDMX
-    - cron: '0 16 * * *'    # 10:00 CDMX
-    - cron: '0 20 * * *'    # 14:00 CDMX
-    - cron: '0 0 * * *'     # 18:00 CDMX
-    - cron: '45 4 * * *'    # 22:45 CDMX
+    - cron: '30 12 * * *'   # 06:30 CDMX (después del resync de Poster 05:00/05:10)
+    - cron: '45 4 * * *'    # 22:45 CDMX (después del corte de las 22:00)
   workflow_dispatch:
+    inputs:
+      completo:
+        description: 'Bajar todo completo de Airtable (1) o solo lo nuevo (0)'
+        default: '0'
 permissions: {contents: write}
 jobs:
   build:
@@ -20,6 +21,7 @@ jobs:
           PW_MARIO: ${{ secrets.PW_MARIO }}
           PW_BRISAS: ${{ secrets.PW_BRISAS }}
           PW_SOCIOS: ${{ secrets.PW_SOCIOS }}
+          FULL_REFRESH: ${{ github.event.inputs.completo }}
       - run: |
           git config user.name bot; git config user.email bot@users.noreply.github.com
-          git add index.html; git commit -m "refresh" || true; git push
+          git add index.html raw.enc; git commit -m "refresh" || true; git push

@@ -11,26 +11,61 @@ RAW = os.path.join(HERE, 'raw')
 BASE = 'appvDywRWEiRY5oPP'
 TABLES = {'ventas': 'tblHw4y5D5GGuneVi', 'canal': 'tblCuKQAOfbRWniWb', 'gastos': 'tblZB1hjuPZigOIYB', 'cierres': 'tblW7aO1M5uSZwxUy'}
 
+INCR = ('canal', 'gastos')   # tablas grandes: solo se bajan los registros nuevos/editados y se juntan con la copia guardada (raw.enc)
+FULL_DAYS = 7                 # cada 7 días se baja todo completo (atrapa borrados y campos calculados)
+
+def _fetch(tok, tid, formula=None):
+    import urllib.request, urllib.parse
+    recs_, off, calls = [], None, 0
+    while True:
+        q = {'returnFieldsByFieldId': 'true', 'pageSize': '100'}
+        if formula: q['filterByFormula'] = formula
+        if off: q['offset'] = off
+        url = f'https://api.airtable.com/v0/{BASE}/{tid}?' + urllib.parse.urlencode(q)
+        req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + tok})
+        d = json.load(urllib.request.urlopen(req)); calls += 1
+        recs_ += [{'id': r['id'], 'cellValuesByFieldId': r['fields']} for r in d['records']]
+        off = d.get('offset')
+        if not off: return recs_, calls
+
+def _load_cache():
+    p = f'{HERE}/raw.enc'
+    if not os.path.exists(p): return None
+    try: return json.loads(decrypt_text(open(p).read(), get_passwords()['mario']))
+    except Exception as e: print('raw.enc no se pudo leer, se baja todo:', e); return None
+
 def refresh_from_airtable():
-    import urllib.request
     tok = os.environ['AIRTABLE_TOKEN']
     os.makedirs(RAW, exist_ok=True)
+    now = dt.datetime.utcnow()
+    cache = _load_cache()
+    full = (os.environ.get('FULL_REFRESH') == '1' or not cache or
+            now - dt.datetime.fromisoformat(cache['full_at']) > dt.timedelta(days=FULL_DAYS))
+    if full: cache = {'full_at': now.isoformat(), 'tables': {}}
+    since = None if full else (dt.datetime.fromisoformat(cache['fetched_at']) - dt.timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    total = 0
     for name, tid in list(TABLES.items()) + [('prod', 'tblk1L5P2IpkKwBtm')]:
-        recs_, off = [], None
-        while True:
-            url = f'https://api.airtable.com/v0/{BASE}/{tid}?returnFieldsByFieldId=true&pageSize=100' + (f'&offset={off}' if off else '')
-            req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + tok})
-            d = json.load(urllib.request.urlopen(req))
-            recs_ += [{'id': r['id'], 'cellValuesByFieldId': r['fields']} for r in d['records']]
-            off = d.get('offset')
-            if not off: break
+        if name in INCR and not full:
+            f = f"OR(IS_AFTER(CREATED_TIME(),'{since}'),IS_AFTER(LAST_MODIFIED_TIME(),'{since}'))"
+            new, n = _fetch(tok, tid, f)
+            byid = {r['id']: r for r in cache['tables'][name]}
+            for r in new: byid[r['id']] = r
+            recs_ = list(byid.values())
+            print(f'{name}: {len(new)} nuevos/editados, {len(recs_)} total ({n} llamadas)')
+        else:
+            recs_, n = _fetch(tok, tid)
+            print(f'{name}: {len(recs_)} completos ({n} llamadas)')
+        total += n
+        if name in INCR: cache['tables'][name] = recs_
         if name == 'prod':
-            n = 0
+            for f_ in glob.glob(f'{RAW}/prod*.json'): os.remove(f_)
             for i in range(0, len(recs_), 50):
-                n += 1
-                json.dump({'records': recs_[i:i+50]}, open(f'{RAW}/prod{n}.json', 'w'))
+                json.dump({'records': recs_[i:i+50]}, open(f'{RAW}/prod{i // 50 + 1}.json', 'w'))
         else:
             json.dump({'records': recs_}, open(f'{RAW}/{name}.json', 'w'))
+    cache['fetched_at'] = now.isoformat()
+    open(f'{HERE}/raw.enc', 'w').write(encrypt_html(json.dumps(cache, separators=(',', ':')), get_passwords()['mario']))
+    print('Airtable:', 'COMPLETO' if full else 'incremental', '-', total, 'llamadas')
 
 def recs(f):
     d = json.load(open(f))
@@ -227,6 +262,7 @@ def main():
     for name, br, lvl, title, sub in specs:
         data = view(daily, canal, prods, gastos, cierres, br, lvl)
         data['meta'] = meta; data['title'] = title; data['sub'] = sub
+        import hashlib; print(name, 'huella', hashlib.sha256(json.dumps({k: v for k, v in data.items() if k != 'meta'}, sort_keys=True).encode()).hexdigest()[:16])
         html = tpl.replace('/*__DATA__*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':'))).replace('__TITLE__', title)
         blobs[name] = encrypt_html(html, pws[name])
         print(name, len(html) // 1024, 'KB', 'daily', len(data['daily']), 'prods', len(data['prods']), 'gastos', len(data['gastos']))
