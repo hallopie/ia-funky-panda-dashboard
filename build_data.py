@@ -188,7 +188,8 @@ def bucket(x):
     if re.search(r'comisi', x['con'] + ' ' + x['sub'], re.I): return 'Comisiones'
     c = x['cat']
     if c == 'Por aclarar': return 'Sin clasificar'
-    if c in ('Insumo Directo', 'Insumo Indirecto'): return 'Insumos'
+    if c in ('Personal', 'Traspaso'): return 'No FP'   # fuera del P&L: gasto personal de Mario / apartados de renta
+    if c in ('Insumo Directo', 'Insumo Indirecto', 'Insumos'): return 'Insumos'
     if c == 'Nómina': return 'Nómina'
     if c == 'Servicios': return 'Servicios'
     if c == 'Construcción': return 'Inversión'
