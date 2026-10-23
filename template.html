@@ -370,7 +370,7 @@ function render(){
     const cell=(n,v,P,b,pv,prevN,tp)=>{ if(v==null)return '<span class="pend">—</span>';
       const s=b?`<b class="${v>=0?'pos':'neg'}">${peso(v)}</b>`:peso(v);
       const parts=[];
-      if(P&&P.ing&&n!=='Ventas')parts.push(pct(Math.abs(v),P.ing)+(b?' margen':' de ventas'));
+      if(P&&P.ing&&n!=='Ventas')parts.push(pct(b?v:Math.abs(v),P.ing)+(b?' margen':' de ventas'));
       const d=dlt(v,pv,tp); if(d)parts.push(d+' vs '+prevN);
       return `<div>${s}</div>`+(parts.length?`<div class="note" style="margin:0">${parts.join(' · ')}</div>`:'')};
     const objCell=(n,o,b,tp)=>o==null?'<span class="pend">por definir</span>':cell(n,o,{ing:ob.v},b,null,'',tp);
