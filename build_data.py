@@ -77,10 +77,10 @@ def recs(f):
 CAT = {1: 'Asiática', 2: 'Mexicana', 3: 'Postres', 4: 'Bebidas', 6: 'Extras', 7: 'Pa Niños', 8: 'Sushi', 9: 'Mule Kick',
        10: 'Especiales', 12: 'Destilados', 13: 'Vino', 14: 'Entradas', 18: 'Cerveza', 27: 'Chupe/Tragos', 28: 'Pizza', 29: 'Café'}
 BEBIDA_IDS = {4, 18, 13, 12, 29, 27}
-GRUPO = {1: 'Asiática', 14: 'Asiática', 2: 'Mexicana', 8: 'Sushi', 9: 'Mule Kick', 28: 'Pizza',
+GRUPO = {1: 'Asiática', 14: 'Entradas', 2: 'Mexicana', 8: 'Sushi', 9: 'Mule Kick', 28: 'Pizza',
          4: 'Bebidas sin alcohol', 29: 'Bebidas sin alcohol',
          18: 'Alcohol', 13: 'Alcohol', 12: 'Alcohol', 27: 'Alcohol'}
-GRUPOS = ['Asiática', 'Mexicana', 'Sushi', 'Mule Kick', 'Pizza', 'Bebidas sin alcohol', 'Alcohol', 'Otros']
+GRUPOS = ['Asiática', 'Mexicana', 'Sushi', 'Mule Kick', 'Pizza', 'Bebidas sin alcohol', 'Alcohol', 'Otros', 'Entradas']
 
 def build():
     B = {'recy00b9ljOGOYmjp': 'B', 'reczTspzmqfMf510m': 'S'}
@@ -131,7 +131,7 @@ def build():
         cat = (c.get('fldyUd5EEfW2vSgan') or '').strip()
         if cat == 'Construccion': cat = 'Construcción'
         if cat == 'Prestamos': cat = 'Préstamos'
-        if cat == 'TEST_CATS' or not c.get('fld1GRP6MALIUsuoF'): continue
+        if cat in ('TEST_CATS', 'Duplicado') or not c.get('fld1GRP6MALIUsuoF'): continue
         gastos.append(dict(d=c['fld1GRP6MALIUsuoF'], b=s, o=o, k=(c.get('fldvHXtEs9cjV429d') or ''), cat=cat or 'Por aclarar',
                            sub=c.get('fldRHVPX1QhVTwGtq') or '', con=c.get('fldY6xoLyIAhC3EFr') or '', t=round(c.get('fldgWghtR5Rbbv9Je') or 0, 2)))
     for x in gastos:   # clasificación propuesta (aprendida de agosto) para movimientos 'Por aclarar'
@@ -189,6 +189,7 @@ def bucket(x):
     c = x['cat']
     if c == 'Por aclarar': return 'Sin clasificar'
     if c in ('Personal', 'Traspaso'): return 'No FP'   # fuera del P&L: gasto personal de Mario / apartados de renta
+    if c == 'Marketing' or re.search(r'RENTA|AGENCIA|PAUTA|MAXX|AUDIENCES', (x['con'] + ' ' + x['k']).upper()): return 'Servicios'   # ya van en el plan de fijos: no se cuentan otra vez en operativos
     if c in ('Insumo Directo', 'Insumo Indirecto', 'Insumos'): return 'Insumos'
     if c == 'Nómina': return 'Nómina'
     if c == 'Servicios': return 'Servicios'
@@ -252,7 +253,8 @@ def main():
     last = max(x['d'] for x in daily)
     # Objetivo mensual (lo define Mario). None = por definir. ventas por sucursal (MXN/mes), insumos_pct y util_pct como fracción de ventas.
     OBJ = dict(ventas={'B': None, 'S': None}, insumos_pct=None, util_pct=None)
-    meta = dict(obj=OBJ, generado=dt.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), ultimoCorte=last,
+    banco = [x['d'] for x in gastos if x['o'] not in ('Efectivo', 'TJ')]
+    meta = dict(bancoHasta=max(banco) if banco else None, obj=OBJ, generado=dt.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'), ultimoCorte=last,
                 cat={str(k): v for k, v in CAT.items()}, bebidas=sorted(BEBIDA_IDS),
                 grupo={str(k): v for k, v in GRUPO.items()}, grupos=GRUPOS)
     tpl = open(f'{HERE}/template.html', encoding='utf-8').read()

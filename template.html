@@ -9,17 +9,17 @@
 :root{
   --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6f6d67; --grid:#e1e0d9; --axis:#c3c2b7;
   --good:#006300; --bad:#b42323; --warn-bg:#fff4d6; --warn-ink:#6b4b00; --accent:#2a78d6;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948; --s9:#8a6d3b;
   --seq:#2a78d6;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#a09f97; --grid:#2c2c2a; --axis:#383835;
   --good:#3ecf5a; --bad:#ff7a7a; --warn-bg:#3a2f0d; --warn-ink:#f3d58a; --accent:#3987e5;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --seq:#3987e5; color-scheme:dark}}
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s9:#b8955a; --seq:#3987e5; color-scheme:dark}}
 :root[data-theme="dark"]{
   --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#a09f97; --grid:#2c2c2a; --axis:#383835;
   --good:#3ecf5a; --bad:#ff7a7a; --warn-bg:#3a2f0d; --warn-ink:#f3d58a; --accent:#3987e5;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --seq:#3987e5; color-scheme:dark}
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s9:#b8955a; --seq:#3987e5; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-inline:16px;padding-block:0 40px}
 .wrap{max-width:1120px;margin:0 auto}
@@ -178,6 +178,7 @@ function card(id,title,note,chartHTML,tableHTML,leg){
   const t=st.tbl[id];
   return `<div class="card" id="c-${id}"><span class="tools">${tableHTML?`<button data-t="${id}">${t?'Ver gráfica':'Ver tabla'}</button>`:''}</span><h3>${title}</h3><p class="note">${note||''}</p>${t&&tableHTML?tableHTML:(leg||'')+chartHTML}</div>`}
 
+const isoMon=(y,n)=>{const j=new Date(Date.UTC(y,0,4));j.setUTCDate(j.getUTCDate()-((j.getUTCDay()+6)%7)+(n-1)*7);return ds(j)};
 function isoWk(s){const d=new Date(s+'T12:00:00Z');const n=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-n+3);const y=d.getUTCFullYear();const j=new Date(Date.UTC(y,0,4));return [y,1+Math.round(((d-j)/864e5-3+((j.getUTCDay()+6)%7))/7)]}
 const histMap=()=>{const m={};(DATA.hist||[]).forEach(h=>m[h.b+'|'+h.y+'|'+h.w]=h.i);return m};
 /* ---------- agregados ---------- */
@@ -241,7 +242,7 @@ function render(){
   // composicion
   const PR=sel(DATA.prods),ptot=sum(PR,'s'),cm={};PR.forEach(p=>{const g=groupOf(p.cid);cm[g]=(cm[g]||0)+p.s});
   const cr=M.grupos.map(g=>({n:g,v:cm[g]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);cr.forEach(r=>r.right=peso(r.v)+' · '+pct(r.v,ptot));
-  h+=`<div class="card"><h3>Composición por categoría</h3><p class="note">% sobre la venta de productos del periodo.</p>${hbars(cr,peso,r=>'background:'+GC[r.n])}</div>`;
+  h+=`<div class="card"><h3>Composición por categoría</h3><p class="note">% sobre la venta de productos del periodo.${(()=>{const o=[...new Set(PR.filter(p=>groupOf(p.cid)==='Otros').map(p=>CATN[p.cid]||('Cat '+p.cid)))];return o.length?' <b>Otros</b> incluye: '+o.join(', ')+'.':''})()}</p>${hbars(cr,peso,r=>'background:'+GC[r.n])}</div>`;
   // apiladas semanal
   const wks=[...new Set(PR.map(p=>wk(p.d)))].sort();
   const sSeries=M.grupos.map(g=>({n:g,c:GC[g],v:wks.map(w=>PR.filter(p=>wk(p.d)===w&&groupOf(p.cid)===g).reduce((s,p)=>s+p.s,0))})).filter(s=>s.v.some(v=>v>0));
@@ -278,8 +279,8 @@ function render(){
     const cfg=[['T','Terraza 2 (2023–24)','var(--s3)'],['S','San Miguel','var(--s2)'],['B','Brisas','var(--s1)']].filter(c=>c[0]==='T'?DATA.branches.includes('S'):DATA.branches.includes(c[0]));
     const ser=cfg.map(c=>({n:c[1],c:c[2],v:ks.map(k=>{const v=val(c[0],k);return c[0]==='T'&&v!=null&&v<3000?null:v})})).filter(s=>s.v.some(v=>v!=null));
     const xl=ks.map(k=>{const[y,n]=k.split('|');return n==='1'||n==='27'?y.slice(2)+'·'+n:''});
-    const hTab=table(['Año · semana',...ser.map(s=>s.n)],ks.map((k,i)=>[k.replace('|',' · S'),...ser.map(s=>s.v[i]==null?'—':peso(s.v[i]))]).reverse());
-    h+=`<div style="grid-column:1/-1">`+card('hist','Histórico semanal desde 2023','Venta por semana ISO y sucursal. Hasta agosto 2026 viene de la base semanal de Mario; después, del sistema (semanas completas).',lineChart(ks.map((k,i)=>{const[y,n]=k.split('|');return n==='1'?y:''}),ser,{aria:'Histórico semanal',h:260,all:true}),hTab,legend(ser.map(s=>[s.n,s.c])))+`</div>`}
+    const hTab=table(['Semana',...ser.map(s=>s.n)],ks.map((k,i)=>[(()=>{const[y,n]=k.split('|').map(Number),m=isoMon(y,n);return lbl(m)+' – '+lbl(addD(m,6))+' · '+y+' S'+n})(),...ser.map(s=>s.v[i]==null?'—':peso(s.v[i]))]).reverse());
+    h+=`<div style="grid-column:1/-1">`+card('hist','Histórico Semanal',(ks.length&&+ks[0].split('|')[0]<2026?'Venta por semana ISO y sucursal. Hasta agosto 2026 viene de la base semanal de Mario; después, del sistema (semanas completas).':'Venta por semana y sucursal (semanas completas, del sistema). El eje muestra la fecha en que inicia cada semana.'),lineChart(ks.map(k=>{const[y,n]=k.split('|').map(Number);return lbl(isoMon(y,n))+(n===1?' '+String(y).slice(2):'')}),ser,{aria:'Histórico semanal',h:260}),hTab,legend(ser.map(s=>[s.n,s.c])))+`</div>`}
   h+=`</div>`;
 
   /* GASTOS Y SEGUIMIENTO */
@@ -307,7 +308,7 @@ function render(){
   const planDia=(P.fijos+P.nom)/Math.max(1,P.dias);
   const realD=days.map(d=>sel(DATA.gastos).filter(x=>x.d===d&&['Servicios','Operativos','Comisiones'].includes(x.bk)).reduce((s,x)=>s+x.t,0));
   const pvTab=table(['Día','Plan (fijos+nómina)','Real (servicios, operativos, comisiones)'],days.map((d,i)=>[lbl(d),peso(planDia),peso(realD[i])]));
-  h+=`<div style="grid-column:1/-1">`+card('pv','Plan vs. real por día','Barras = gasto real registrado ese día · línea punteada = plan diario de fijos + nómina.',barChart(days.map(lbl),[{n:'Real',c:'var(--s2)',v:realD}],{h:220,line:{c:'var(--s1)',v:days.map(()=>planDia)},aria:'Plan vs real por día'}),pvTab,legend([['Real registrado','var(--s2)'],['Plan diario','var(--s1)']]))+`</div>`;
+  h+=`<div style="grid-column:1/-1">`+card('pv','Gasto Diario','Barras = gasto real registrado ese día · línea punteada = plan diario de fijos + nómina.',barChart(days.map(lbl),[{n:'Real',c:'var(--s2)',v:realD}],{h:220,line:{c:'var(--s1)',v:days.map(()=>planDia)},aria:'Plan vs real por día'}),pvTab,legend([['Real registrado','var(--s2)'],['Plan diario','var(--s1)']]))+`</div>`;
   h+=`</div>`;
   if(FULL){
     h+=`<div class="card" style="margin-top:12px"><h3>Costos fijos mensuales (plan)</h3><p class="note">Nómina va aparte (base semanal de activos + eventuales).</p><div class="grid">${brsU.map(b=>`<div><b>${BN[b]}</b>`+table(['Concepto','Mensual'],Object.entries(DATA.fijos[b]).map(([k,v])=>[k,peso(v)]),['Total',peso(Object.values(DATA.fijos[b]).reduce((a,c)=>a+c,0))])+`<p class="note">Nómina base: ${peso(DATA.nomina[b])} por semana.</p></div>`).join('')}</div></div>`}
@@ -344,11 +345,13 @@ function render(){
         (ct?`<p class="note" style="margin-top:8px">Mario: inicio de semana ${peso(ct.inicio)} · ventas ${peso(ct.ventas)} = total semanal ${peso(ct.inicio+ct.ventas)} · total pagos ${peso(ct.total_pagos)} · <b>disponible ${peso(ct.disponible)}</b>. Su «Insumos» ya incluye caja chica (${peso(ct.caja_chica)}), gas y gasolina (${peso(ct.gas+ct.gasolina)}). Propinas: él descuenta ${peso(ct.propinas)}, Poster reporta ${peso(prop)} (posible neto de comisión; por confirmar).</p>`:'')+`</div>`}
   }
 
-  /* P&L: últimos 30 días + últimos 3 meses + objetivo */
+  /* P&L: meses lado a lado; cada mes contra el anterior; % sobre ventas por concepto */
   {
-    const mm=months.slice(-3).reverse();
-    const cols=[{n:'Últimos 30 días',sub:lbl(addD(last,-29))+' – '+lbl(last),P:plBlock(d=>d>addD(last,-30))},
-      ...mm.map(m=>{const Pm=plBlock(d=>d.slice(0,7)===m);return {n:MESL[+m.slice(5)-1],sub:Pm.dias+' días con venta',P:Pm}})];
+    const mAll=months.slice(-4), mm=mAll.slice(-3).reverse();   // se calculan 4 meses para poder comparar el más viejo mostrado
+    const plM=m=>plBlock(d=>d.slice(0,7)===m), lastM=months[months.length-1];
+    const parcBanco=!!(M.bancoHasta&&M.bancoHasta<last);
+    const cols=mm.map(m=>{const i=mAll.indexOf(m),pm=i>0?mAll[i-1]:null,Pm=plM(m);
+      return {m,n:MESL[+m.slice(5)-1],sub:Pm.dias+' días con venta'+(m===lastM?' (parcial)':''),P:Pm,prev:pm?plM(pm):null,prevN:pm?MESL[+pm.slice(5)-1].slice(0,3).toLowerCase():'',flag:m===lastM&&parcBanco}});
     const brs_=st.br==='ALL'?DATA.branches:[st.br];
     const O=(M.obj||{}),ov=brs_.map(b=>(O.ventas||{})[b]),ovT=ov.every(v=>v!=null)?ov.reduce((s,v)=>s+v,0):null;
     const oIns=ovT!=null&&O.insumos_pct!=null?ovT*O.insumos_pct:null;
@@ -357,17 +360,27 @@ function render(){
     const oUt=ovT!=null&&O.util_pct!=null?ovT*O.util_pct:null;
     const ob={v:ovT,ins:oIns,ub:oUB,nom:oNom,fij:oFij,ut:oUt};
     const ut=P=>P.ing-P.ins-P.nom-P.fijos-P.com-P.imp-P.op;
-    const defs=[['Ventas',P=>P.ing,ob.v,0],['(−) Insumos',P=>-P.ins,ob.ins==null?null:-ob.ins,0],['Utilidad bruta',P=>P.ing-P.ins,ob.ub,1],
-      ['(−) Nómina (plan)',P=>-P.nom,-ob.nom,0],['(−) Costos fijos (plan)',P=>-P.fijos,-ob.fij,0],['(−) Comisiones',P=>-P.com,null,0],['(−) Gastos operativos',P=>-P.op,null,0],['(−) Impuestos (est.)',P=>-P.imp,null,0],
-      ['Utilidad operativa',ut,ob.ut,1]];
-    const cell=(v,P,b)=>{if(v==null)return '<span class="pend">—</span>';const s=b?`<b class="${v>=0?'pos':'neg'}">${peso(v)}</b>`:peso(v);return s+` <span class="note">${P&&P.ing?pct(Math.abs(v),P.ing):''}</span>`};
-    const objRef={ing:ob.v};
-    const sg=new Set(['(−) Insumos','(−) Gastos operativos']);
-    const rowsPL=defs.map(([n,f,o,b])=>[b?`<b>${n}</b>`:n,...cols.map(c=>c.P.sinG&&sg.has(n)?'<span class="pend">sin captura</span>':cell(f(c.P),c.P,b)+(c.P.sinG&&b?'*':'')),o==null?'<span class="pend">por definir</span>':cell(o,{ing:ob.v},b)]);
+    // [concepto, fn, objetivo, negrita, tipo] tipo: 'i' ingreso/utilidad (sube = bien) · 'c' costo (sube = mal)
+    const defs=[['Ventas',P=>P.ing,ob.v,0,'i'],['(−) Insumos',P=>-P.ins,ob.ins==null?null:-ob.ins,0,'c'],['Utilidad bruta',P=>P.ing-P.ins,ob.ub,1,'i'],
+      ['(−) Nómina (plan)',P=>-P.nom,-ob.nom,0,'c'],['(−) Costos fijos (plan)',P=>-P.fijos,-ob.fij,0,'c'],['(−) Comisiones',P=>-P.com,null,0,'c'],['(−) Gastos operativos',P=>-P.op,null,0,'c'],['(−) Impuestos (est.)',P=>-P.imp,null,0,'c'],
+      ['Utilidad operativa',ut,ob.ut,1,'i']];
+    const dlt=(v,pv,tp)=>{ if(pv==null||v==null||pv===0)return '';
+      if(tp==='c'){const m=(Math.abs(v)/Math.abs(pv)-1)*100;return `<span class="${m<=0?'pos':'neg'}">${m>=0?'▲':'▼'} ${Math.abs(m).toFixed(0)}%</span>`}
+      const ch=(v-pv)/Math.abs(pv)*100;return `<span class="${ch>=0?'pos':'neg'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(0)}%</span>`};
+    const cell=(n,v,P,b,pv,prevN,tp)=>{ if(v==null)return '<span class="pend">—</span>';
+      const s=b?`<b class="${v>=0?'pos':'neg'}">${peso(v)}</b>`:peso(v);
+      const parts=[];
+      if(P&&P.ing&&n!=='Ventas')parts.push(pct(Math.abs(v),P.ing)+(b?' margen':' de ventas'));
+      const d=dlt(v,pv,tp); if(d)parts.push(d+' vs '+prevN);
+      return `<div>${s}</div>`+(parts.length?`<div class="note" style="margin:0">${parts.join(' · ')}</div>`:'')};
+    const objCell=(n,o,b,tp)=>o==null?'<span class="pend">por definir</span>':cell(n,o,{ing:ob.v},b,null,'',tp);
+    const sg=new Set(['(−) Insumos','(−) Gastos operativos']), fl=new Set(['(−) Insumos','(−) Gastos operativos','Utilidad bruta','Utilidad operativa']);
+    const rowsPL=defs.map(([n,f,o,b,tp])=>[b?`<b>${n}</b>`:n,...cols.map(c=>c.P.sinG&&sg.has(n)?'<span class="pend">sin captura</span>':cell(n,f(c.P),c.P,b,c.prev&&!(c.prev.sinG&&sg.has(n))?f(c.prev):null,c.prevN,tp)+(c.P.sinG&&b?'*':'')+(c.flag&&fl.has(n)?' †':'')),objCell(n,o,b,tp)]);
     const noObj=ob.v==null?' Las metas de ventas, insumos y utilidad están <b>por definir con Mario</b>; nómina y fijos del objetivo ya salen de su tabla de plan.':'';
-    h+=`<h2>Estado de resultados (P&amp;L)</h2><div class="card"><div class="note">Últimos 30 días (corte ${lbl(last)}) y los tres últimos meses, lado a lado, contra el objetivo mensual. Nómina, fijos, comisiones (4% de pagos con tarjeta) e impuestos (10% de ventas declaradas: 20% del efectivo + Mercado Pago) estimados con el modelo de Mario; insumos y operativos a real. Excluye obra, préstamos y movimientos sin clasificar.${noObj}</div>`+
+    const ult=cols[0];
+    h+=`<h2>Estado de resultados (P&amp;L)</h2><div class="card"><div class="note">Los tres últimos meses lado a lado, contra el objetivo mensual. Cada concepto muestra su <b>% sobre las ventas</b> del mes y su <b>cambio contra el mes anterior</b>. Nómina, fijos, comisiones (4% de pagos con tarjeta) e impuestos (10% de ventas declaradas: 20% del efectivo + Mercado Pago) estimados con el modelo de Mario; insumos y operativos a real. Excluye obra, préstamos y movimientos sin clasificar.${noObj}</div>`+
       table(['Concepto',...cols.map(c=>`${c.n}<br><span class="note" style="font-weight:400">${c.sub}</span>`),'Objetivo<br><span class="note" style="font-weight:400">mensual</span>'],rowsPL)+
-      `<p class="note" style="margin-top:8px">Memo (últimos 30 días, fuera del P&amp;L): obra ${peso(cols[0].P.inv)} · préstamos ${peso(cols[0].P.pre)} · sin clasificar ${peso(cols[0].P.sc)}. El mes en curso es parcial (solo los días con venta).${cols.some(c=>c.P.sinG)?' <b>*</b> Periodo sin gastos capturados todavía (insumos y operativos): la utilidad se ve más alta de lo real hasta que se carguen.':''}</p></div>`;
+      `<p class="note" style="margin-top:8px">Memo (${ult.n.toLowerCase()}, fuera del P&amp;L): obra ${peso(ult.P.inv)} · préstamos ${peso(ult.P.pre)} · sin clasificar ${peso(ult.P.sc)}. El mes en curso es parcial (solo los días con venta), así que su cambio en pesos contra el mes anterior no es equivalente: compara mejor el % de ventas.${cols.some(c=>c.P.sinG)?' <b>*</b> Periodo sin gastos capturados todavía (insumos y operativos): la utilidad se ve más alta de lo real hasta que se carguen.':''}${cols.some(c=>c.flag)?' <b>†</b> Los movimientos bancarios están cargados solo hasta el '+lbl(M.bancoHasta)+': insumos y gastos operativos de este mes están incompletos y la utilidad se ve más alta de lo real.':''}</p></div>`;
   }
 
   /* ACTUALIZACION */
