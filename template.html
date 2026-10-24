@@ -399,7 +399,7 @@ function render(){
       const w=st.cx,e=addD(w,6),R=CI.filter(x=>x.d>=w&&x.d<=e);
       const selx=`<div class="seg" style="margin-bottom:10px" role="group" aria-label="Semana caja">${wsC.slice(0,8).map(x=>`<button data-cx="${x}" aria-pressed="${x===w}">${lbl(x)}–${lbl(addD(x,6))}</button>`).join('')}</div>`;
       const dr=R.map(x=>[lbl(x.d),peso(x.ab),peso(x.inc),peso(x.ci),peso(x.ef),`<span class="${x.est==='Cuadra'?'pos':'neg'}">${x.dif?peso(x.dif):'✓ cuadra'}</span>`,peso(x.sube),peso(x.pc*0.95+x.ptj*0.91)]);
-      h+=`<div class="card" style="margin-top:12px"><h3>Cierre diario</h3>${selx}<div style="overflow-x:auto">`+table(['Día','Abre caja','Incidencias','Cierre caja','Efectivo Poster','Diferencia','Sube a fondo','Propinas a pagar'],dr)+`</div></div>`;
+      h+=`<div class="card" style="margin-top:12px"><h3>Cierre diario</h3>${selx}<div style="overflow-x:auto">`+table(['Día','Abre caja','Incidencias','Cierre caja','Efectivo Poster','Diferencia','Sube a fondo','Propinas a pagar'],dr,R.length?['Total','',peso(R.reduce((a,x)=>a+x.inc,0)),'',peso(R.reduce((a,x)=>a+x.ef,0)),peso(R.reduce((a,x)=>a+(x.dif||0),0)),peso(R.reduce((a,x)=>a+x.sube,0)),peso(R.reduce((a,x)=>a+x.pc*0.95+x.ptj*0.91,0))]:null)+`</div></div>`;
       const GG=DATA.gastos.filter(x=>x.mc&&(st.br==='ALL'||x.b===st.br)&&x.d>=w&&x.d<=e);
       const mrows=DATA.metas.map(([n,m])=>{const v=GG.filter(x=>x.mc===n).reduce((a,x)=>a+x.t,0);
         return [n,peso(m),peso(v),m?`<span class="${v>m?'neg':'pos'}">${v>m?'+':''}${peso(v-m)}</span>`:(v?'<span class="neg">+'+peso(v)+'</span>':'—')]});
