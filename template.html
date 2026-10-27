@@ -410,6 +410,11 @@ function render(){
   }
   const gen=new Date(M.generado);
   h+=`<h2>Actualización y cortes</h2><div class="card"><table><tbody><tr><td>Último corte de ventas</td><td><b>${lbl(last)} ${last.slice(0,4)}</b></td></tr><tr><td>Datos generados</td><td>${gen.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}</td></tr><tr><td>Siguiente actualización</td><td>Diaria, ~22:30 (cierre de Poster)</td></tr><tr><td>Día en curso</td><td>No incluido hasta el cierre${FULL?' (usa «Venta en vivo»)':''}</td></tr></tbody></table></div>`;
+  if(!FULL){const tmp=document.createElement('div');tmp.innerHTML=h;
+    tmp.querySelectorAll('.banner').forEach(e=>e.remove());
+    tmp.querySelectorAll('.note').forEach(e=>{if(e.closest('td,th'))return;if(/Mario|pendiente|parcial|incomplet|captura|propuest|por definir|†|estimad|agrupaci/i.test(e.textContent))e.remove()});
+    tmp.querySelectorAll('.pend').forEach(e=>{e.textContent='—'});
+    h=tmp.innerHTML.replace(/\s*†/g,'').replace(/\s*\(parcial\)/g,'')}
   $('#main').innerHTML=h;
   $('#cut').innerHTML=`Último corte: <b>${lbl(last)}</b>`;
   bind();
