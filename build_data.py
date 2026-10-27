@@ -266,7 +266,7 @@ def main():
     if falta: raise SystemExit('Faltan contraseñas (PW_MARIO / PW_BRISAS / PW_SOCIOS): ' + ', '.join(falta) + '. No se publica nada sin cifrar.')
     for name, br, lvl, title, sub in specs:
         data = view(daily, canal, prods, gastos, cierres, br, lvl)
-        data['meta'] = meta; data['title'] = title; data['sub'] = sub
+        data['meta'] = meta; data['title'] = title; data['sub'] = sub; data['avisos'] = (name == 'mario')  # advertencias internas solo en Dirección
         import hashlib; h_ = hashlib.sha256(json.dumps({k: v for k, v in data.items() if k != 'meta'}, sort_keys=True).encode()).hexdigest()[:16]; print(name, 'huella', h_); HUELLA.append(f'{name} {h_}')
         html = tpl.replace('/*__DATA__*/null', json.dumps(data, ensure_ascii=False, separators=(',', ':'))).replace('__TITLE__', title)
         blobs[name] = encrypt_html(html, pws[name])
