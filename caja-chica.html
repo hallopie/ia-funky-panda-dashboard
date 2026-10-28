@@ -49,6 +49,8 @@
   .msg.ok{color:var(--moss);} .msg.err{color:var(--danger);}
   .res{margin-top:14px;border:1px solid var(--stone-2);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;}
   .res b{color:var(--gold);}
+  .who{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--parchment-dim);margin:-2px 0 14px;}
+  .who a{color:var(--gold);text-decoration:none;text-transform:uppercase;letter-spacing:.04em;}
   .soon{border:2px dashed var(--stone-2);border-radius:8px;padding:28px 16px;text-align:center;color:var(--parchment-dim);font-size:13px;}
   [hidden]{display:none !important;}
   .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:14px;text-align:center;margin-top:18px;opacity:.7;}
@@ -57,6 +59,17 @@
 <body>
 <div class="card">
   <h1>Caja</h1>
+  <div id="login">
+    <p class="sub">Entra con tu clave para registrar.</p>
+    <form id="formLogin">
+      <label for="clave">Tu clave</label>
+      <input type="password" id="clave" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="Ej. 01" required>
+      <button type="submit">Entrar</button>
+      <div id="loginMsg" class="msg"></div>
+    </form>
+  </div>
+  <div id="app" hidden>
+  <div class="who"><span id="whoTxt"></span><a href="#" id="salir">Salir</a></div>
   <div class="tabs">
     <button type="button" class="tab on" data-tab="compras">Compras</button>
     <button type="button" class="tab" data-tab="apertura">Apertura</button>
@@ -102,8 +115,6 @@
         <div><label for="ci_pcash">Propinas efectivo ($)</label><input type="number" id="ci_pcash" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></div>
         <div><label for="ci_ptj">Propinas tarjeta ($)</label><input type="number" id="ci_ptj" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></div>
       </div>
-      <label for="ci_nombre">Tu nombre</label>
-      <input type="text" id="ci_nombre" placeholder="¿Quién cierra?" required>
       <label for="ci_notas">Notas (opcional)</label>
       <input type="text" id="ci_notas" placeholder="Algo que debamos saber">
       <button type="submit" id="ciBtn">Registrar cierre</button>
@@ -123,14 +134,14 @@
       <option value="Brisas">Brisas</option>
     </select>
 
+    <label for="proveedor">Proveedor</label>
+    <input type="text" id="proveedor" placeholder="¿A quién se le compró?" required>
+
     <label for="concepto">¿En qué se gastó?</label>
     <input type="text" id="concepto" placeholder="Ej. Hielo, pan, gas..." required>
 
     <label for="monto">Monto ($)</label>
     <input type="number" id="monto" step="0.01" min="0" placeholder="0.00" required>
-
-    <label for="reportado_por">Tu nombre</label>
-    <input type="text" id="reportado_por" placeholder="¿Quién lo reporta?" required>
 
     <label>Foto del ticket</label>
     <div class="filebox" id="fileboxWrap">
@@ -143,10 +154,44 @@
     <div id="msg"></div>
   </form>
   </div>
+  </div>
   <div class="wordmark">Sótano Bajo · Funky Panda</div>
 </div>
 
 <script>
+
+// ---------- Acceso por clave ----------
+// Para dar de alta a alguien: agrega su clave y su nombre aquí.
+const USUARIOS = {
+  "01": "Cajero 01",
+  "02": "Cajero 02",
+  "03": "Mario"
+};
+let USER = { clave: "", nombre: "", label: "" };
+const IDLE_MS = 5 * 60 * 1000; let idleT = null;
+function ss(k, v){ try{ if(v === undefined) return sessionStorage.getItem(k); if(v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); }catch(e){ return null; } }
+function entrar(clave){
+  USER = { clave, nombre: USUARIOS[clave], label: clave + " · " + USUARIOS[clave] };
+  ss("clave", clave);
+  document.getElementById("login").hidden = true; document.getElementById("app").hidden = false;
+  document.getElementById("whoTxt").textContent = "Registrando como " + USER.label;
+  resetIdle();
+}
+function salir(){
+  USER = { clave: "", nombre: "", label: "" }; ss("clave", null);
+  document.getElementById("app").hidden = true; document.getElementById("login").hidden = false;
+  document.getElementById("clave").value = ""; document.getElementById("loginMsg").textContent = "";
+}
+function resetIdle(){ clearTimeout(idleT); idleT = setTimeout(salir, IDLE_MS); }
+["click","keydown","touchstart"].forEach(ev => document.addEventListener(ev, () => { if(USER.clave) resetIdle(); }));
+document.getElementById("formLogin").addEventListener("submit", e => {
+  e.preventDefault();
+  const c = document.getElementById("clave").value.trim();
+  if(USUARIOS[c]) entrar(c);
+  else { const m = document.getElementById("loginMsg"); m.className = "msg err"; m.textContent = "Clave incorrecta."; document.getElementById("clave").value = ""; }
+});
+document.getElementById("salir").addEventListener("click", e => { e.preventDefault(); salir(); });
+{ const c0 = ss("clave"); if(c0 && USUARIOS[c0]) entrar(c0); }
 const WEBHOOK_URL = "https://hook.us2.make.com/55516lwmo5nrsthl4phf34iacwmwh9rh";
 
 const fotoInput = document.getElementById("foto");
@@ -209,7 +254,9 @@ document.getElementById("form").addEventListener("submit", async (e) => {
       sucursal: document.getElementById("sucursal").value,
       concepto: document.getElementById("concepto").value,
       monto: Number(document.getElementById("monto").value),
-      reportado_por: document.getElementById("reportado_por").value,
+      reportado_por: USER.label,
+      clave: USER.clave,
+      proveedor: document.getElementById("proveedor").value,
       foto_base64: foto.b64,
       foto_filename: foto.name,
       foto_mime: foto.mime
@@ -248,7 +295,6 @@ const keyAp = (s,f,t) => "abre|" + s + "|" + f + "|" + t;
 
 ["ap_fecha","ci_fecha"].forEach(id => document.getElementById(id).value = hoy());
 ["ap_sucursal","ci_sucursal"].forEach(id => { const v = store.get("sucursal"); if(v) document.getElementById(id).value = v; });
-const nm = store.get("nombre"); if(nm) document.getElementById("ci_nombre").value = nm;
 
 function prefillAbre(){
   const s = document.getElementById("ci_sucursal").value, f = document.getElementById("ci_fecha").value, t = TURNO;
@@ -272,7 +318,7 @@ document.getElementById("formAp").addEventListener("submit", async (e) => {
   if(abre === ""){ msg.className = "msg err"; msg.textContent = "Escribe con cuánto abres."; return; }
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Guardando...";
   try{
-    await postJSON({ tipo: "apertura", sucursal: s, fecha: f, turno: t, abre_caja: abre });
+    await postJSON({ tipo: "apertura", sucursal: s, fecha: f, turno: t, abre_caja: abre, reportado_por: USER.label, clave: USER.clave });
     store.set(keyAp(s,f,t), String(abre)); store.set("sucursal", s);
     document.getElementById("ci_sucursal").value = s;
     msg.className = "msg ok"; msg.textContent = "¡Listo! Apertura registrada: " + peso(abre) + ".";
@@ -296,13 +342,14 @@ document.getElementById("formCi").addEventListener("submit", async (e) => {
     otras_salidas: num("ci_salidas") === "" ? 0 : num("ci_salidas"),
     propinas_cash: num("ci_pcash") === "" ? 0 : num("ci_pcash"),
     propinas_tj: num("ci_ptj") === "" ? 0 : num("ci_ptj"),
-    reportado_por: document.getElementById("ci_nombre").value,
+    reportado_por: USER.label,
+    clave: USER.clave,
     notas: document.getElementById("ci_notas").value
   };
   const abre = num("ci_abre"); if(abre !== "") payload.abre_caja = abre;
   try{
     const d = await postJSON(payload);
-    store.set("sucursal", s); store.set("nombre", payload.reportado_por);
+    store.set("sucursal", s);
     msg.className = "msg ok"; msg.textContent = "¡Listo! Cierre registrado.";
     if(d && d.estado){
       let t2 = "<b>Abriste con:</b> " + peso(d.abre) + "<br><b>Ventas en efectivo (Poster):</b> " + peso(d.efectivo_poster) + "<br><b>Salidas:</b> " + peso(d.incidencias) + "<br><b>Debía haber:</b> " + peso(d.comprobacion);

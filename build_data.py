@@ -235,7 +235,7 @@ def get_passwords():
     pw = {}
     pf = os.path.join(HERE, 'passwords.json')   # local, NO se sube a GitHub
     if os.path.exists(pf): pw.update(json.load(open(pf)))
-    for n in ('mario', 'brisas', 'socios'):
+    for n in ('mario', 'brisas', 'socios', 'sma'):
         if os.environ.get('PW_' + n.upper()): pw[n] = os.environ['PW_' + n.upper()]
     return pw
 
@@ -260,8 +260,11 @@ def main():
     tpl = open(f'{HERE}/template.html', encoding='utf-8').read()
     specs = [('mario', ['B', 'S'], 'full', 'Funky Panda · Dirección', 'Brisas + San Miguel de Allende'),
              ('brisas', ['B'], 'full', 'Funky Panda · Brisas', 'Sucursal Brisas'),
-             ('socios', ['B'], 'socios', 'Funky Panda · Socios', 'Sucursal Brisas · resumen')]
+             ('socios', ['B'], 'socios', 'Funky Panda · Socios', 'Sucursal Brisas · resumen'),
+             ('sma', ['S'], 'socios', 'Funky Panda · San Miguel', 'Sucursal San Miguel de Allende · resumen')]
     pws = get_passwords(); blobs = {}
+    if 'sma' not in pws:   # tablero de San Miguel: opcional hasta que exista PW_SMA (no rompe los demás)
+        print('AVISO: sin PW_SMA, no se genera el tablero de San Miguel'); specs = [x for x in specs if x[0] != 'sma']
     falta = [n for n, *_ in specs if n not in pws]
     if falta: raise SystemExit('Faltan contraseñas (PW_MARIO / PW_BRISAS / PW_SOCIOS): ' + ', '.join(falta) + '. No se publica nada sin cifrar.')
     for name, br, lvl, title, sub in specs:
