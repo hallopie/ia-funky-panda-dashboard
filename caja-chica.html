@@ -72,11 +72,7 @@
         <option value="San Miguel">San Miguel</option>
         <option value="Brisas">Brisas</option>
       </select>
-      <div class="row2">
-        <div><label for="ap_fecha">Fecha</label><input type="date" id="ap_fecha" required></div>
-        <div><label for="ap_turno">Turno</label>
-          <select id="ap_turno" required><option value="Tarde">Tarde</option><option value="Mañana">Mañana</option></select></div>
-      </div>
+      <label for="ap_fecha">Fecha</label><input type="date" id="ap_fecha" required>
       <label for="ap_abre">Con cuánto abres caja ($)</label>
       <input type="number" id="ap_abre" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required>
       <p class="hint2">Cuenta billetes y monedas. Si hubo algún pago antes de abrir, anótalo aquí ya descontado.</p>
@@ -94,11 +90,7 @@
         <option value="San Miguel">San Miguel</option>
         <option value="Brisas">Brisas</option>
       </select>
-      <div class="row2">
-        <div><label for="ci_fecha">Fecha</label><input type="date" id="ci_fecha" required></div>
-        <div><label for="ci_turno">Turno</label>
-          <select id="ci_turno" required><option value="Tarde">Tarde</option><option value="Mañana">Mañana</option></select></div>
-      </div>
+      <label for="ci_fecha">Fecha</label><input type="date" id="ci_fecha" required>
       <label for="ci_abre">Con cuánto abriste ($)</label>
       <input type="number" id="ci_abre" step="0.01" min="0" inputmode="decimal" placeholder="0.00 (se llena solo)">
       <label for="ci_cierre">Efectivo que queda en caja al cerrar ($)</label>
@@ -244,6 +236,7 @@ document.getElementById("form").addEventListener("submit", async (e) => {
 
 // ---------- Apertura / Cierre ----------
 const CIERRE_URL = "https://hook.us2.make.com/s7lvsdz8ujt2p0t6imkzqcbqy8ukhfg5";
+const TURNO = "Tarde";
 const hoy = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Mexico_City" });
 const peso = n => (n === "" || n == null || isNaN(Number(n))) ? "—" : Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 const num = id => { const v = document.getElementById(id).value; return v === "" ? "" : Number(v); };
@@ -258,11 +251,11 @@ const keyAp = (s,f,t) => "abre|" + s + "|" + f + "|" + t;
 const nm = store.get("nombre"); if(nm) document.getElementById("ci_nombre").value = nm;
 
 function prefillAbre(){
-  const s = document.getElementById("ci_sucursal").value, f = document.getElementById("ci_fecha").value, t = document.getElementById("ci_turno").value;
+  const s = document.getElementById("ci_sucursal").value, f = document.getElementById("ci_fecha").value, t = TURNO;
   const v = store.get(keyAp(s,f,t));
   if(v !== null && document.getElementById("ci_abre").value === "") document.getElementById("ci_abre").value = v;
 }
-["ci_sucursal","ci_fecha","ci_turno"].forEach(id => document.getElementById(id).addEventListener("change", () => { document.getElementById("ci_abre").value = ""; prefillAbre(); }));
+["ci_sucursal","ci_fecha"].forEach(id => document.getElementById(id).addEventListener("change", () => { document.getElementById("ci_abre").value = ""; prefillAbre(); }));
 
 async function postJSON(payload){
   const res = await fetch(CIERRE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -274,7 +267,7 @@ async function postJSON(payload){
 document.getElementById("formAp").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("apBtn"), msg = document.getElementById("apMsg");
-  const s = document.getElementById("ap_sucursal").value, f = document.getElementById("ap_fecha").value, t = document.getElementById("ap_turno").value;
+  const s = document.getElementById("ap_sucursal").value, f = document.getElementById("ap_fecha").value, t = TURNO;
   const abre = num("ap_abre");
   if(abre === ""){ msg.className = "msg err"; msg.textContent = "Escribe con cuánto abres."; return; }
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Guardando...";
@@ -292,7 +285,7 @@ document.getElementById("formAp").addEventListener("submit", async (e) => {
 document.getElementById("formCi").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("ciBtn"), msg = document.getElementById("ciMsg"), res = document.getElementById("ciRes");
-  const s = document.getElementById("ci_sucursal").value, f = document.getElementById("ci_fecha").value, t = document.getElementById("ci_turno").value;
+  const s = document.getElementById("ci_sucursal").value, f = document.getElementById("ci_fecha").value, t = TURNO;
   const cierre = num("ci_cierre");
   if(cierre === ""){ msg.className = "msg err"; msg.textContent = "Falta el efectivo que queda en caja."; return; }
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Guardando..."; res.hidden = true;
