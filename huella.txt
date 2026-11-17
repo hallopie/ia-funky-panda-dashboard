@@ -1,4 +1,4 @@
-2026-11-16 22:27Z incremental 10 llamadas
-mario a46e4d2252fcb82d
-brisas b0e72380ef5633f0
-socios 2995a3d5bf64c91d
+2026-11-17 13:53Z COMPLETO 40 llamadas
+mario 06fa51f19076d71e
+brisas 0bbc663d6357414f
+socios 5bfc5de90ce7fd76
