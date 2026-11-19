@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Funky Panda - genera data por audiencia y los 3 dashboards (mario / brisas / socios).
-Lee raw/*.json (volcados de Airtable). Si hay AIRTABLE_TOKEN, vuelve a bajar los datos primero.
+Lee raw/*.json. Con FP_SECRET baja de Supabase (fp-export); con AIRTABLE_TOKEN (legado) de Airtable.
 Uso: python3 build_data.py        -> mario.html brisas.html socios.html
 """
 import json, base64, os, re, glob, datetime as dt, collections
@@ -68,6 +68,50 @@ def refresh_from_airtable():
     open(f'{HERE}/raw.enc', 'w').write(encrypt_html(json.dumps(cache, separators=(',', ':')), get_passwords()['mario']))
     print('Airtable:', 'COMPLETO' if full else 'incremental', '-', total, 'llamadas')
     HUELLA.append(f"{now:%Y-%m-%d %H:%M}Z {'COMPLETO' if full else 'incremental'} {total} llamadas")
+
+
+SUPA_URL = 'https://wwgjsfkvegxqflpjlaqu.supabase.co/functions/v1/fp-export'
+_SID = {'B': 'recy00b9ljOGOYmjp', 'S': 'reczTspzmqfMf510m'}
+def _sid(suc): return [_SID['B' if (suc or '').endswith('Brisas') or not suc else 'S']]
+
+def refresh_from_supabase():
+    """Baja las tablas fp_* de Supabase (edge function fp-export, secreto en FP_SECRET) y las escribe en raw/*.json
+    con la misma forma que tenia Airtable (cellValuesByFieldId), para no tocar build()."""
+    import urllib.request
+    sec = os.environ['FP_SECRET']
+    os.makedirs(RAW, exist_ok=True)
+    def get(t):
+        rq = urllib.request.Request(f'{SUPA_URL}?tabla={t}', headers={'x-fp-secret': sec})
+        d = json.load(urllib.request.urlopen(rq, timeout=120))
+        assert d.get('ok'), d
+        return d['rows']
+    W = lambda name, recs_: json.dump({'records': recs_}, open(f'{RAW}/{name}.json', 'w'))
+    R = lambda i, c: {'id': str(i), 'cellValuesByFieldId': {k: v for k, v in c.items() if v is not None}}
+    v = get('ventas')
+    W('ventas', [R(r['id'], {'fldI7kSA6NF2mCBOT': r['sucursal'], 'fldatJACI7EDhrgoX': r['fecha'], 'flddZAIvFnhuLJYH3': r['numero_recibos'],
+        'fldX2HbnhNuA8ZmF4': r['efectivo'], 'fldmtG2SsLQXgk58N': r['tarjeta'], 'fldiYH6rhQJKKBav9': r['uber_eats'], 'fldT7VV4xvx7QPTM9': r['rappi'],
+        'fldunW2LCXdpGAqK6': r['clip'], 'fld2s6mBr3Y0BiEKS': r['mercado_pago'], 'fldGqUBlPBKwbrBCY': r['paywise'], 'fld2PkKbSpb7vETUc': r['propinas'],
+        'fldP8jLp9GTcfa6tw': r['descuentos'], 'fldbTypmyvl90151G': r['ingreso_poster']}) for r in v])
+    c = get('canal')
+    W('canal', [R(r['id'], {'fldDND2oeZCi0HKX6': r['fecha'], 'fldF6i8x632cr0Rzj': r['clave'], 'fld9zmknKmc7Jb2uJ': r['canal'],
+        'fldOkoib3khVFTzdt': r['tickets'], 'fld4ixXEHyIb5vk1I': r['importe']}) for r in c])
+    g = get('gastos')
+    W('gastos', [R(r['id'], {'fld1GRP6MALIUsuoF': r['fecha'], 'fldlY7OadmDx75fM2': _sid(r['sucursal']), 'fld5cnQeotZLzy7MM': r['origen'],
+        'fldyUd5EEfW2vSgan': r['categoria'], 'fldvHXtEs9cjV429d': r['proveedor'], 'fldRHVPX1QhVTwGtq': r['subcategoria'],
+        'fldY6xoLyIAhC3EFr': r['concepto'], 'fldgWghtR5Rbbv9Je': r['total']}) for r in g])
+    ci = get('cierres')
+    W('cierres', [R(r['id'], {'fldPRSt2wSbo4HM5Z': r['fecha'], 'fld0GcRQtg9zOEO5a': _sid(r['sucursal']), 'fld5gFwF3FrLinhnS': r['estado'],
+        'fld0hvNZLEQlLXgBL': r['abre_caja'], 'fldOuOsbhsipTDqrH': r['incidencias_caja'], 'fldjjcZj2pCVE58Oz': r['cierre_caja'],
+        'fldueAhhq3yhiqJtF': r['efectivo_poster'], 'fldYWqTWAAcxkr06G': r['diferencia'], 'fld8gTMXpScjtPksI': r['tarjeta_poster'],
+        'fldZZiDcZYtgawdNZ': r['uber'], 'fldkO6YeQ7wSUGcu6': r['propinas_cash'], 'fldqvFcdx9QHhJ4Iu': r['propinas_tj'],
+        'fldSZmP3bAC7vUN5V': r['sube_a_fondo'], 'fld3bCgltS1yVqEQu': r['propinas_a_pagar']}) for r in ci])
+    p = [r for r in get('producto') if r.get('detalle_b64')]
+    for f_ in glob.glob(f'{RAW}/prod*.json'): os.remove(f_)
+    recsp = [R(r['id'], {'fldHn7vUyQ6uMJGy3': r['clave'], 'fldJIjKocMddYkNcJ': r['detalle_b64']}) for r in p]
+    for i in range(0, len(recsp), 50):
+        json.dump({'records': recsp[i:i+50]}, open(f'{RAW}/prod{i // 50 + 1}.json', 'w'))
+    print('Supabase:', {k: len(x) for k, x in dict(ventas=v, canal=c, gastos=g, cierres=ci, prod=p).items()})
+    HUELLA.append(f"{dt.datetime.utcnow():%Y-%m-%d %H:%M}Z supabase")
 
 def recs(f):
     d = json.load(open(f))
@@ -235,7 +279,7 @@ def get_passwords():
     pw = {}
     pf = os.path.join(HERE, 'passwords.json')   # local, NO se sube a GitHub
     if os.path.exists(pf): pw.update(json.load(open(pf)))
-    for n in ('mario', 'brisas', 'socios', 'sma'):
+    for n in ('mario', 'brisas', 'socios'):
         if os.environ.get('PW_' + n.upper()): pw[n] = os.environ['PW_' + n.upper()]
     return pw
 
@@ -248,7 +292,8 @@ def load_hist():
     return [x for x in h if not (x['b'] in ('B', 'S') and (x['y'], x['w']) >= (2026, 32))]
 
 def main():
-    if os.environ.get('AIRTABLE_TOKEN'): refresh_from_airtable()
+    if os.environ.get('FP_SECRET'): refresh_from_supabase()
+    elif os.environ.get('AIRTABLE_TOKEN'): refresh_from_airtable()
     daily, canal, prods, gastos, cierres = build()
     last = max(x['d'] for x in daily)
     # Objetivo mensual (lo define Mario). None = por definir. ventas por sucursal (MXN/mes), insumos_pct y util_pct como fracción de ventas.
@@ -260,11 +305,8 @@ def main():
     tpl = open(f'{HERE}/template.html', encoding='utf-8').read()
     specs = [('mario', ['B', 'S'], 'full', 'Funky Panda · Dirección', 'Brisas + San Miguel de Allende'),
              ('brisas', ['B'], 'full', 'Funky Panda · Brisas', 'Sucursal Brisas'),
-             ('socios', ['B'], 'socios', 'Funky Panda · Socios', 'Sucursal Brisas · resumen'),
-             ('sma', ['S'], 'socios', 'Funky Panda · San Miguel', 'Sucursal San Miguel de Allende · resumen')]
+             ('socios', ['B'], 'socios', 'Funky Panda · Socios', 'Sucursal Brisas · resumen')]
     pws = get_passwords(); blobs = {}
-    if 'sma' not in pws:   # tablero de San Miguel: opcional hasta que exista PW_SMA (no rompe los demás)
-        print('AVISO: sin PW_SMA, no se genera el tablero de San Miguel'); specs = [x for x in specs if x[0] != 'sma']
     falta = [n for n, *_ in specs if n not in pws]
     if falta: raise SystemExit('Faltan contraseñas (PW_MARIO / PW_BRISAS / PW_SOCIOS): ' + ', '.join(falta) + '. No se publica nada sin cifrar.')
     for name, br, lvl, title, sub in specs:
