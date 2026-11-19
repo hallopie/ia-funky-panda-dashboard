@@ -1,4 +1,4 @@
-2026-11-19 20:54Z incremental 10 llamadas
-mario abea01d903a0ea4d
-brisas bfa535ea2198ada9
-socios 749afa49a8fb1bf7
+2026-11-19 20:56Z supabase
+mario 5d30b698e89ea11e
+brisas 56814d0371b89fe9
+socios b7bb202996ffa508
