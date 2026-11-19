@@ -18,6 +18,7 @@ jobs:
       - run: python3 build_data.py
         env:
           AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          FP_SECRET: ${{ secrets.FP_SECRET }}
           PW_MARIO: ${{ secrets.PW_MARIO }}
           PW_BRISAS: ${{ secrets.PW_BRISAS }}
           PW_SOCIOS: ${{ secrets.PW_SOCIOS }}
