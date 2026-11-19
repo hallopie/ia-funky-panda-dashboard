@@ -38,8 +38,8 @@
   #msg{font-size:13px;min-height:18px;margin-top:10px;text-align:center;}
   #msg.ok{color:var(--moss);}
   #msg.err{color:var(--danger);}
-  .tabs{display:flex;gap:6px;margin:0 0 18px;}
-  .tabs .tab{margin:0;width:auto;flex:1;background:var(--stone-4);color:var(--parchment-dim);border:1px solid var(--stone-2);padding:10px 12px;}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px;}
+  .tabs .tab{margin:0;width:auto;flex:1 1 auto;background:var(--stone-4);color:var(--parchment-dim);border:1px solid var(--stone-2);padding:10px 8px;font-size:12px;}
   .tabs .tab.on{background:var(--gold);color:#2C2306;border-color:var(--gold);}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row2 label{margin-top:16px;}
@@ -52,6 +52,18 @@
   .who{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--parchment-dim);margin:-2px 0 14px;}
   .who a{color:var(--gold);text-decoration:none;text-transform:uppercase;letter-spacing:.04em;}
   .soon{border:2px dashed var(--stone-2);border-radius:8px;padding:28px 16px;text-align:center;color:var(--parchment-dim);font-size:13px;}
+  .rb{margin:14px 0 0;}
+  .rb .top{display:flex;justify-content:space-between;gap:8px;font-size:13px;}
+  .rb .top b{color:var(--parchment);}
+  .bar{height:10px;border-radius:5px;background:var(--stone-4);border:1px solid var(--stone-2);margin:6px 0 3px;overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--moss);}
+  .bar i.warn{background:var(--gold);} .bar i.over{background:var(--danger);}
+  .rb .sm{font-size:11px;color:var(--parchment-dim);}
+  .rb .sm.over{color:var(--danger);}
+  .tot{margin-top:18px;padding-top:12px;border-top:1px solid var(--stone-2);font-size:13px;display:flex;justify-content:space-between;}
+  .obrow{display:grid;grid-template-columns:1fr 110px;gap:10px;align-items:center;margin-top:10px;font-size:13px;}
+  .obrow input{padding:8px 10px;}
+  .small{width:auto;padding:8px 12px;margin-top:10px;font-size:12px;}
   [hidden]{display:none !important;}
   .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:14px;text-align:center;margin-top:18px;opacity:.7;}
 </style>
@@ -74,6 +86,32 @@
     <button type="button" class="tab on" data-tab="compras">Compras</button>
     <button type="button" class="tab" data-tab="apertura">Apertura</button>
     <button type="button" class="tab" data-tab="cierre">Cierre</button>
+    <button type="button" class="tab" data-tab="semana">Semana</button>
+    <button type="button" class="tab" id="tabObj" data-tab="objetivos" hidden>Objetivos</button>
+  </div>
+
+  <div id="tab-semana" hidden>
+    <p class="sub">Lo gastado de caja chica esta semana (lunes a domingo) contra el objetivo de cada rubro.</p>
+    <label for="se_sucursal">Sucursal</label>
+    <select id="se_sucursal"><option value="">Selecciona...</option><option value="San Miguel">San Miguel</option><option value="Brisas">Brisas</option></select>
+    <div id="seSemana" class="hint2"></div>
+    <div id="seBody"></div>
+    <div id="seMsg" class="msg"></div>
+    <button type="button" class="small" id="seRef">Actualizar</button>
+  </div>
+
+  <div id="tab-objetivos" hidden>
+    <p class="sub">Fija cuánto puede gastar cada sucursal por rubro. Si no cambias nada, se queda el objetivo de la semana anterior.</p>
+    <div class="row2">
+      <div><label for="ob_sucursal">Sucursal</label>
+      <select id="ob_sucursal"><option value="">Selecciona...</option><option value="San Miguel">San Miguel</option><option value="Brisas">Brisas</option></select></div>
+      <div><label for="ob_semana">Semana</label>
+      <select id="ob_semana"><option value="0">Esta semana</option><option value="1">Próxima semana</option></select></div>
+    </div>
+    <div id="obSemana" class="hint2"></div>
+    <div id="obRows"></div>
+    <button type="button" id="obBtn">Guardar objetivos</button>
+    <div id="obMsg" class="msg"></div>
   </div>
 
   <div id="tab-apertura" hidden>
@@ -134,6 +172,9 @@
       <option value="Brisas">Brisas</option>
     </select>
 
+    <label for="rubro">Rubro</label>
+    <select id="rubro" required><option value="">Selecciona...</option></select>
+
     <label for="proveedor">Proveedor</label>
     <input type="text" id="proveedor" placeholder="¿A quién se le compró?" required>
 
@@ -176,11 +217,13 @@ function entrar(clave){
   ss("clave", clave);
   document.getElementById("login").hidden = true; document.getElementById("app").hidden = false;
   document.getElementById("whoTxt").textContent = "Registrando como " + USER.label;
+  document.getElementById("tabObj").hidden = (clave !== "03");
   resetIdle();
 }
 function salir(){
   USER = { clave: "", nombre: "", label: "" }; ss("clave", null);
   document.getElementById("app").hidden = true; document.getElementById("login").hidden = false;
+  document.getElementById("tabObj").hidden = true;
   document.getElementById("clave").value = ""; document.getElementById("loginMsg").textContent = "";
 }
 function resetIdle(){ clearTimeout(idleT); idleT = setTimeout(salir, IDLE_MS); }
@@ -193,7 +236,7 @@ document.getElementById("formLogin").addEventListener("submit", e => {
 });
 document.getElementById("salir").addEventListener("click", e => { e.preventDefault(); salir(); });
 { const c0 = ss("clave"); if(c0 && USUARIOS[c0]) entrar(c0); }
-const WEBHOOK_URL = "https://hook.us2.make.com/55516lwmo5nrsthl4phf34iacwmwh9rh";
+const WEBHOOK_URL = "https://wwgjsfkvegxqflpjlaqu.supabase.co/functions/v1/fp-caja";
 
 const fotoInput = document.getElementById("foto");
 const preview = document.getElementById("preview");
@@ -215,7 +258,11 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
   document.getElementById("tab-compras").hidden = t.dataset.tab !== "compras";
   document.getElementById("tab-apertura").hidden = t.dataset.tab !== "apertura";
   document.getElementById("tab-cierre").hidden = t.dataset.tab !== "cierre";
+  document.getElementById("tab-semana").hidden = t.dataset.tab !== "semana";
+  document.getElementById("tab-objetivos").hidden = t.dataset.tab !== "objetivos";
   if(t.dataset.tab === "cierre") prefillAbre();
+  if(t.dataset.tab === "semana") cargaSemana(false);
+  if(t.dataset.tab === "objetivos") cargaObjetivos();
 }));
 
 function rawBase64(file){
@@ -252,6 +299,8 @@ document.getElementById("form").addEventListener("submit", async (e) => {
   try{
     const foto = await fileToBase64(file);
     const payload = {
+      tipo: "compras",
+      rubro: document.getElementById("rubro").value,
       sucursal: document.getElementById("sucursal").value,
       concepto: document.getElementById("concepto").value,
       monto: Number(document.getElementById("monto").value),
@@ -283,7 +332,7 @@ document.getElementById("form").addEventListener("submit", async (e) => {
 });
 
 // ---------- Apertura / Cierre ----------
-const CIERRE_URL = "https://hook.us2.make.com/s7lvsdz8ujt2p0t6imkzqcbqy8ukhfg5";
+const CIERRE_URL = WEBHOOK_URL;   // un solo endpoint para todo (Supabase)
 const TURNO = "Tarde";
 const hoy = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Mexico_City" });
 const peso = n => (n === "" || n == null || isNaN(Number(n))) ? "—" : Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -362,6 +411,90 @@ document.getElementById("formCi").addEventListener("submit", async (e) => {
   }catch(err){
     msg.className = "msg err"; msg.textContent = "No se pudo registrar: " + err.message + ". Intenta de nuevo.";
   }finally{ btn.disabled = false; }
+});
+
+// ---------- Rubros, objetivos y resumen semanal ----------
+const RUBROS = ["Carne","Mariscos","Verduras y fruta","Abarrotes","Refrescos","Alcohol","Costco","Toyo","Desechables y limpieza","Otros"];
+{ const sel = document.getElementById("rubro"); RUBROS.forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; sel.appendChild(o); }); }
+function addDays(iso, n){ const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.toLocaleDateString("sv-SE"); }
+function lunesDe(iso){ const d = new Date(iso + "T12:00:00"); return addDays(iso, -((d.getDay() + 6) % 7)); }
+const fmtF = iso => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+const semanaHoy = () => lunesDe(hoy());
+["se_sucursal","ob_sucursal"].forEach(id => { const v = store.get("sucursal"); if(v) document.getElementById(id).value = v; });
+
+// Objetivo vigente por rubro: el más reciente ≤ semana pedida (si no se cambió, se arrastra el de la semana anterior)
+function objetivosVigentes(rows){
+  const m = {};
+  (rows || []).forEach(r => { if(r.Rubro && !(r.Rubro in m)) m[r.Rubro] = Number(r.Objetivo) || 0; }); // vienen ordenados de más nuevo a más viejo
+  return m;
+}
+async function traeResumen(sucursal, inicio){
+  return postJSON({ tipo: "resumen", sucursal, semana_inicio: inicio, semana_fin: addDays(inicio, 6), clave: USER.clave });
+}
+const cache = {};
+async function resumenCache(sucursal, inicio, force){
+  const k = sucursal + "|" + inicio, c = cache[k];
+  if(!force && c && Date.now() - c.t < 60000) return c.d;
+  const d = await traeResumen(sucursal, inicio); cache[k] = { t: Date.now(), d }; return d;
+}
+async function cargaSemana(force){
+  const s = document.getElementById("se_sucursal").value, body = document.getElementById("seBody"), msg = document.getElementById("seMsg");
+  const ini = semanaHoy();
+  document.getElementById("seSemana").textContent = "Semana del " + fmtF(ini) + " al " + fmtF(addDays(ini, 6));
+  if(!s){ body.innerHTML = ""; msg.textContent = ""; return; }
+  msg.className = "msg"; msg.textContent = "Cargando...";
+  try{
+    const d = await resumenCache(s, ini, force);
+    const obj = objetivosVigentes(d.objetivos), gasto = {};
+    (d.gastos || []).forEach(g => { const r = g.Subcategoria || "Sin rubro"; gasto[r] = (gasto[r] || 0) + (Number(g.Total) || 0); });
+    const nombres = RUBROS.concat(Object.keys(gasto).filter(r => !RUBROS.includes(r)));
+    let html = "", tg = 0, to = 0;
+    nombres.forEach(r => {
+      const g = gasto[r] || 0, o = obj[r] || 0;
+      if(!g && !o) return;
+      tg += g; to += o;
+      const pct = o ? g / o * 100 : 0, cls = !o ? "" : pct > 100 ? "over" : pct >= 80 ? "warn" : "";
+      const sm = !o ? "Sin objetivo fijado" : g > o ? "Te pasaste por " + peso(g - o) : "Te quedan " + peso(o - g);
+      html += '<div class="rb"><div class="top"><b>' + r + '</b><span>' + peso(g) + (o ? " / " + peso(o) : "") + '</span></div>' +
+        '<div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, pct) + '%"></i></div><div class="sm ' + cls + '">' + sm + '</div></div>';
+    });
+    html = html ? html + '<div class="tot"><b>Total semana</b><span>' + peso(tg) + (to ? " / " + peso(to) : "") + '</span></div>' : '<div class="soon">Aún no hay gastos ni objetivos esta semana.</div>';
+    body.innerHTML = html; msg.textContent = "";
+  }catch(err){ msg.className = "msg err"; msg.textContent = "No se pudo cargar: " + err.message; }
+}
+document.getElementById("se_sucursal").addEventListener("change", () => { store.set("sucursal", document.getElementById("se_sucursal").value); cargaSemana(false); });
+document.getElementById("seRef").addEventListener("click", () => cargaSemana(true));
+
+// --- Objetivos (solo clave 03) ---
+const semanaObj = () => addDays(semanaHoy(), 7 * Number(document.getElementById("ob_semana").value));
+async function cargaObjetivos(){
+  const s = document.getElementById("ob_sucursal").value, rows = document.getElementById("obRows"), msg = document.getElementById("obMsg");
+  const ini = semanaObj();
+  document.getElementById("obSemana").textContent = "Semana del " + fmtF(ini) + " al " + fmtF(addDays(ini, 6));
+  msg.textContent = "";
+  if(!s){ rows.innerHTML = ""; return; }
+  msg.className = "msg"; msg.textContent = "Cargando...";
+  try{
+    const d = await traeResumen(s, ini), obj = objetivosVigentes(d.objetivos);
+    rows.innerHTML = RUBROS.map((r, i) => '<div class="obrow"><span>' + r + '</span><input type="number" step="50" min="0" inputmode="decimal" id="obr' + i + '" placeholder="0" value="' + (obj[r] || "") + '"></div>').join("");
+    msg.textContent = "";
+  }catch(err){ msg.className = "msg err"; msg.textContent = "No se pudo cargar: " + err.message; }
+}
+["ob_sucursal","ob_semana"].forEach(id => document.getElementById(id).addEventListener("change", cargaObjetivos));
+document.getElementById("obBtn").addEventListener("click", async () => {
+  const s = document.getElementById("ob_sucursal").value, msg = document.getElementById("obMsg"), btn = document.getElementById("obBtn");
+  if(USER.clave !== "03"){ msg.className = "msg err"; msg.textContent = "Solo Mario puede fijar objetivos."; return; }
+  if(!s){ msg.className = "msg err"; msg.textContent = "Elige la sucursal."; return; }
+  const ini = semanaObj(), recs = [];
+  RUBROS.forEach((r, i) => { const el = document.getElementById("obr" + i); if(el && el.value !== "") recs.push({ fields: { "Clave": s + "|" + ini + "|" + r, "Sucursal": s, "Semana Inicio": ini, "Rubro": r, "Objetivo": Number(el.value), "Fijado Por": USER.label } }); });
+  if(!recs.length){ msg.className = "msg err"; msg.textContent = "Pon al menos un objetivo."; return; }
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Guardando...";
+  try{
+    await postJSON({ tipo: "guardar", clave: USER.clave, sucursal: s, semana_inicio: ini, registros_json: JSON.stringify(recs) });
+    Object.keys(cache).forEach(k => delete cache[k]);
+    msg.className = "msg ok"; msg.textContent = "¡Listo! Objetivos guardados para " + s + ".";
+  }catch(err){ msg.className = "msg err"; msg.textContent = "No se pudo guardar: " + err.message; }
+  finally{ btn.disabled = false; }
 });
 </script>
 </body>
