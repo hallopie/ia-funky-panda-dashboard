@@ -66,6 +66,42 @@
   .small{width:auto;padding:8px 12px;margin-top:10px;font-size:12px;}
   [hidden]{display:none !important;}
   .wordmark{font-family:var(--font-hand);color:var(--gold);font-size:14px;text-align:center;margin-top:18px;opacity:.7;}
+
+  .card{max-width:460px;}
+  .hello{font-family:var(--font-hand);font-size:22px;color:var(--parchment);margin:2px 0 2px;}
+  .hello small{display:block;font-family:var(--font-mono);font-size:12px;color:var(--parchment-dim);}
+  .sec{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--parchment-dim);margin:22px 0 8px;display:flex;justify-content:space-between;align-items:center;}
+  .av{display:flex;gap:10px;align-items:flex-start;border-radius:8px;padding:10px 12px;margin:0 0 8px;font-size:13px;line-height:1.4;background:var(--stone-3);border:1px solid var(--stone-2);border-left:4px solid var(--gold);}
+  .av.alerta{border-left-color:var(--danger);} .av.ok{border-left-color:var(--moss);}
+  .av i{font-style:normal;font-size:16px;line-height:1.2;}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .step{border:1.5px solid var(--stone-2);border-radius:10px;padding:12px 6px;text-align:center;background:var(--stone-3);cursor:pointer;font-size:12px;color:var(--parchment-dim);}
+  .step b{display:block;font-size:22px;margin-bottom:4px;color:var(--parchment-dim);}
+  .step.done{border-color:var(--moss);color:var(--parchment);} .step.done b{color:var(--moss);}
+  .step small{display:block;margin-top:3px;font-size:11px;color:var(--parchment-dim);}
+  .prog{height:8px;border-radius:4px;background:var(--stone-4);border:1px solid var(--stone-2);overflow:hidden;margin:10px 0 0;}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--rust),var(--gold));transition:width .5s;}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;font-size:10px;color:var(--parchment-dim);}
+  .week div{padding:6px 0;border-radius:8px;background:var(--stone-3);border:1px solid var(--stone-2);}
+  .week div.full{background:rgba(90,133,119,.25);border-color:var(--moss);color:var(--parchment);}
+  .week div.part{background:rgba(201,162,39,.15);border-color:var(--gold);color:var(--parchment);}
+  .week div.today{outline:1.5px solid var(--gold);}
+  .week b{display:block;font-size:14px;margin-top:2px;}
+  .streak{display:inline-block;background:var(--stone-4);border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:3px 10px;font-size:12px;}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .kpi div{background:var(--stone-3);border:1px solid var(--stone-2);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--parchment-dim);}
+  .kpi b{display:block;font-size:17px;color:var(--parchment);margin-top:3px;}
+  .kpi .up{color:var(--moss);} .kpi .dn{color:var(--danger);}
+  .hist{font-size:13px;}
+  .hist .it{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--stone-2);}
+  .hist .it span{color:var(--parchment-dim);font-size:11px;display:block;}
+  .hist .it em{font-style:normal;color:var(--gold);white-space:nowrap;}
+  .uso{width:100%;border-collapse:collapse;font-size:12px;}
+  .uso th,.uso td{padding:6px 2px;text-align:center;border-bottom:1px solid var(--stone-2);}
+  .uso th{color:var(--parchment-dim);font-weight:400;font-size:10px;} .uso td.l{text-align:left;color:var(--parchment);}
+  .uso .y{color:var(--moss);} .uso .n{color:var(--danger);opacity:.7;}
+  .pill{font-size:11px;background:var(--stone-4);border:1px solid var(--stone-2);border-radius:20px;padding:4px 10px;color:var(--parchment-dim);}
+  select#in_suc{width:auto;padding:5px 8px;font-size:12px;}
 </style>
 </head>
 <body>
@@ -83,11 +119,22 @@
   <div id="app" hidden>
   <div class="who"><span id="whoTxt"></span><a href="#" id="salir">Salir</a></div>
   <div class="tabs">
-    <button type="button" class="tab on" data-tab="compras">Compras</button>
+    <button type="button" class="tab on" data-tab="inicio">Inicio</button>
+    <button type="button" class="tab" data-tab="compras">Compras</button>
     <button type="button" class="tab" data-tab="apertura">Apertura</button>
     <button type="button" class="tab" data-tab="cierre">Cierre</button>
     <button type="button" class="tab" data-tab="semana">Semana</button>
     <button type="button" class="tab" id="tabObj" data-tab="objetivos" hidden>Objetivos</button>
+  </div>
+
+
+  <div id="tab-inicio">
+    <div class="hello" id="inHello"></div>
+    <div class="sec"><span>Avisos</span><select id="in_suc"><option value="todas">Todas</option><option value="San Miguel">San Miguel</option><option value="Brisas">Brisas</option></select></div>
+    <div id="inAvisos"></div>
+    <div id="inBody"></div>
+    <div id="inMsg" class="msg"></div>
+    <button type="button" class="small" id="inRef">Actualizar</button>
   </div>
 
   <div id="tab-semana" hidden>
@@ -161,7 +208,7 @@
     </form>
   </div>
 
-  <div id="tab-compras">
+  <div id="tab-compras" hidden>
   <p class="sub">Compras y producto recibido: hielo, pan, insumos, imprevistos. Foto del ticket y la IA lee los productos.</p>
 
   <form id="form">
@@ -219,6 +266,7 @@ function entrar(clave){
   document.getElementById("whoTxt").textContent = "Registrando como " + USER.label;
   document.getElementById("tabObj").hidden = (clave !== "03");
   resetIdle();
+  if(typeof cargaInicio === "function") setTimeout(cargaInicio, 0);
 }
 function salir(){
   USER = { clave: "", nombre: "", label: "" }; ss("clave", null);
@@ -255,11 +303,13 @@ fotoInput.addEventListener("change", () => {
 
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  document.getElementById("tab-inicio").hidden = t.dataset.tab !== "inicio";
   document.getElementById("tab-compras").hidden = t.dataset.tab !== "compras";
   document.getElementById("tab-apertura").hidden = t.dataset.tab !== "apertura";
   document.getElementById("tab-cierre").hidden = t.dataset.tab !== "cierre";
   document.getElementById("tab-semana").hidden = t.dataset.tab !== "semana";
   document.getElementById("tab-objetivos").hidden = t.dataset.tab !== "objetivos";
+  if(t.dataset.tab === "inicio") cargaInicio();
   if(t.dataset.tab === "cierre") prefillAbre();
   if(t.dataset.tab === "semana") cargaSemana(false);
   if(t.dataset.tab === "objetivos") cargaObjetivos();
@@ -496,6 +546,70 @@ document.getElementById("obBtn").addEventListener("click", async () => {
   }catch(err){ msg.className = "msg err"; msg.textContent = "No se pudo guardar: " + err.message; }
   finally{ btn.disabled = false; }
 });
+
+// ---------- Inicio: avisos, mi día, metas ----------
+const INICIO_URL = "https://wwgjsfkvegxqflpjlaqu.supabase.co/functions/v1/fp-inicio";
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DIAS = ["D","L","M","M","J","V","S"];
+function irTab(t){ const b = document.querySelector('.tab[data-tab="' + t + '"]'); if(b) b.click(); }
+function sucDefault(){ return USER.clave === "03" ? "todas" : USER.clave === "04" ? "Brisas" : "San Miguel"; }
+async function cargaInicio(){
+  const sel = document.getElementById("in_suc"), msg = document.getElementById("inMsg");
+  if(!sel.dataset.init){ sel.value = sucDefault(); sel.dataset.init = "1"; }
+  const hr = new Date().toLocaleString("en-GB", { timeZone: "America/Mexico_City", hour: "2-digit", hour12: false });
+  document.getElementById("inHello").innerHTML = (Number(hr) < 12 ? "Buenos días" : Number(hr) < 19 ? "Buenas tardes" : "Buenas noches") + ", " + esc(USER.nombre) + '<small>' + new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Mexico_City" }) + '</small>';
+  msg.className = "msg"; msg.textContent = "Cargando...";
+  try{
+    const d = await (async () => {
+      const r = await fetch(INICIO_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clave: USER.clave, sucursal: sel.value, reportado_por: USER.label }) });
+      if(!r.ok) throw new Error("respuesta " + r.status); return r.json();
+    })();
+    msg.textContent = "";
+    const ic = { alerta: "🔴", aviso: "🟡", ok: "🟢" };
+    document.getElementById("inAvisos").innerHTML = d.avisos.length
+      ? d.avisos.map(a => '<div class="av ' + a.nivel + '"><i>' + ic[a.nivel] + '</i><span>' + esc(a.texto) + '</span></div>').join("")
+      : '<div class="av ok"><i>🟢</i><span>Todo al día. ¡Buen trabajo!</span></div>';
+    let h = "";
+    d.sucursales.forEach(su => {
+      const hoyS = su.hoy, comp = hoyS.compras, nComp = comp.length, totC = comp.reduce((a, c) => a + Number(c.total || 0), 0);
+      const hechos = [hoyS.apertura.hecha, nComp > 0, hoyS.cierre.hecho], pts = hechos.filter(Boolean).length;
+      h += '<div class="sec"><span>' + (d.sucursales.length > 1 ? esc(su.sucursal) + " · " : "") + 'Mi día</span>' + (su.racha >= 2 ? '<span class="streak">🔥 ' + su.racha + ' días de racha</span>' : "") + '</div>';
+      h += '<div class="steps">' +
+        '<div class="step ' + (hechos[0] ? "done" : "") + '" data-go="apertura"><b>' + (hechos[0] ? "✓" : "1") + '</b>Apertura<small>' + (hechos[0] ? peso(hoyS.apertura.abre) : "pendiente") + '</small></div>' +
+        '<div class="step ' + (hechos[1] ? "done" : "") + '" data-go="compras"><b>' + (hechos[1] ? "✓" : "2") + '</b>Compras<small>' + (nComp ? nComp + " · " + peso(totC) : "toca para agregar") + '</small></div>' +
+        '<div class="step ' + (hechos[2] ? "done" : "") + '" data-go="cierre"><b>' + (hechos[2] ? "✓" : "3") + '</b>Cierre<small>' + (hechos[2] ? (hoyS.cierre.estado || "listo") : "pendiente") + '</small></div></div>' +
+        '<div class="prog"><i style="width:' + Math.round(pts / 3 * 100) + '%"></i></div>';
+      if(nComp) h += '<div class="hist" style="margin-top:10px">' + comp.slice(0, 5).map(c => '<div class="it"><div>' + esc(c.concepto || "Compra") + '<span>' + esc(c.rubro || "") + (c.hora ? " · " + esc(c.hora) : "") + (c.ticket ? " · 📷" : "") + '</span></div><em>' + peso(c.total) + '</em></div>').join("") + '</div>';
+      // semana
+      h += '<div class="sec"><span>Últimos 7 días</span></div><div class="week">' + su.dias.map((x, i) => {
+        const k = (x.apertura ? 1 : 0) + (x.compras ? 1 : 0) + (x.cierre ? 1 : 0), dw = new Date(x.fecha + "T12:00:00").getDay();
+        return '<div class="' + (k === 3 ? "full" : k ? "part" : "") + (i === 6 ? " today" : "") + '">' + DIAS[dw] + '<b>' + (k === 3 ? "★" : k ? k + "/3" : "·") + '</b></div>';
+      }).join("") + '</div>';
+      // metas
+      const sm = su.semana, obj = sm.objetivos, nombres = Object.keys(obj).filter(r => obj[r] > 0);
+      h += '<div class="sec"><span>Metas de la semana</span></div>';
+      if(nombres.length){
+        h += nombres.map(r => { const g = sm.gasto[r] || 0, o = obj[r], pct = g / o * 100, cls = pct > 100 ? "over" : pct >= 80 ? "warn" : "";
+          return '<div class="rb"><div class="top"><b>' + esc(r) + '</b><span>' + peso(g) + " / " + peso(o) + '</span></div><div class="bar"><i class="' + cls + '" style="width:' + Math.min(100, pct) + '%"></i></div><div class="sm ' + cls + '">' + (g > o ? "Te pasaste " + peso(g - o) : "Te quedan " + peso(o - g)) + '</div></div>'; }).join("");
+      } else h += '<div class="soon">Aún no hay objetivos de gasto para esta sucursal.</div>';
+      const dv = sm.ventas_anterior ? (sm.ventas - sm.ventas_anterior) / sm.ventas_anterior * 100 : null;
+      h += '<div class="kpi" style="margin-top:12px"><div>Ventas de la semana<b>' + peso(sm.ventas) + '</b>' + sm.ventas_dias + ' días de Poster</div><div>Semana pasada<b>' + peso(sm.ventas_anterior) + '</b>' + (dv == null ? "" : '<span class="' + (dv >= 0 ? "up" : "dn") + '">' + (sm.ventas_dias < 7 ? "semana en curso" : (dv >= 0 ? "▲ " : "▼ ") + Math.abs(dv).toFixed(0) + "%") + '</span>') + '</div></div>';
+      // uso (Mario)
+      if(USER.clave === "03"){
+        h += '<div class="sec"><span>¿Están usando la app? · ' + esc(su.sucursal) + '</span></div><table class="uso"><tr><th></th>' + su.dias.map(x => '<th>' + DIAS[new Date(x.fecha + "T12:00:00").getDay()] + '</th>').join("") + '</tr>' +
+          [["Apertura", x => x.apertura], ["Compras", x => x.compras > 0], ["Cierre", x => x.cierre]].map(([n, f]) => '<tr><td class="l">' + n + '</td>' + su.dias.map(x => '<td class="' + (f(x) ? "y" : "n") + '">' + (f(x) ? "●" : "○") + '</td>').join("") + '</tr>').join("") + '</table>';
+      }
+    });
+    // lo que he hecho
+    h += '<div class="sec"><span>Lo que he registrado</span><span class="pill">' + d.mis_registros.length + ' recientes</span></div>';
+    h += d.mis_registros.length ? '<div class="hist">' + d.mis_registros.map(m => '<div class="it"><div>' + ({compra:"🛒",apertura:"🔓",cierre:"🔒"}[m.tipo]) + " " + esc(m.texto) + '<span>' + fmtF(m.fecha) + " · " + esc(m.sucursal) + '</span></div><em>' + peso(m.monto) + '</em></div>').join("") + '</div>'
+      : '<div class="soon">Todavía no has registrado nada con tu clave. Empieza con la apertura.</div>';
+    document.getElementById("inBody").innerHTML = h;
+    document.querySelectorAll("#inBody .step").forEach(el => el.addEventListener("click", () => irTab(el.dataset.go)));
+  }catch(err){ msg.className = "msg err"; msg.textContent = "No se pudo cargar: " + err.message; }
+}
+document.getElementById("in_suc").addEventListener("change", cargaInicio);
+document.getElementById("inRef").addEventListener("click", cargaInicio);
 </script>
 </body>
 </html>
