@@ -1,4 +1,4 @@
-2026-11-26 21:51Z supabase
-mario 9921b513f5cb167a
-brisas 118e0d2551a7849b
-socios de0f51e3c03ce941
+2026-11-27 14:24Z supabase
+mario aa2c79c4705de200
+brisas 2b52c8ff662d98c6
+socios e78b8b09c4c23fa0
